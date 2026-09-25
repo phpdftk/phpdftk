@@ -102,4 +102,61 @@ final class PaintTest extends TestCase
             self::assertSame('g', $paint->id, $raw);
         }
     }
+
+    /**
+     * SVG 2 §16.2 / CSS Values 4 §4.5.1 — leading and trailing
+     * whitespace is stripped from a URL, including inside the quotes
+     * of a quoted `url()`. WPT's
+     * `svg/linking/reftests/url-processing-whitespace-001` writes all
+     * four placements.
+     */
+    public function testWhitespaceInsideAQuotedUrlIsStripped(): void
+    {
+        foreach (["url(' #green') red", "url('#green ') red", "url(' #green ') red"] as $raw) {
+            $paint = Paint::parse($raw);
+            self::assertInstanceOf(Url::class, $paint, $raw);
+            self::assertSame('green', $paint->id, $raw);
+        }
+    }
+
+    public function testWhitespaceAroundAnUnquotedUrlIsStripped(): void
+    {
+        $paint = Paint::parse('url(  #green  ) red');
+        self::assertInstanceOf(Url::class, $paint);
+        self::assertSame('green', $paint->id);
+    }
+
+    public function testInternalWhitespaceIsNotStrippedSoTheReferenceStaysUnresolvable(): void
+    {
+        // `url(' # red ')` trims to `# red`, whose fragment still
+        // contains a space. That names no element, so the paint falls
+        // back — it must NOT be "helpfully" read as `#red`.
+        $paint = Paint::parse("url(' # red ') green");
+        self::assertInstanceOf(Url::class, $paint);
+        self::assertNotSame('red', $paint->id);
+        self::assertInstanceOf(SolidColor::class, $paint->fallback);
+    }
+
+    public function testDoubleQuotedUrlParses(): void
+    {
+        $paint = Paint::parse('url("#grad")');
+        self::assertInstanceOf(Url::class, $paint);
+        self::assertSame('grad', $paint->id);
+    }
+
+    public function testMismatchedQuotesAreNotStripped(): void
+    {
+        // Guard: only a MATCHED pair of quotes is a CSS string. A lone
+        // quote is a parse error, and swallowing it would turn
+        // malformed author input into a silently different reference.
+        self::assertNull(Paint::parse('url(\'#grad")'));
+    }
+
+    public function testNonFragmentUrlIsNotTreatedAsALocalReference(): void
+    {
+        // Guard: an external reference is not a local `#id`. Reading
+        // one as a local id would resolve it against the wrong
+        // document.
+        self::assertNull(Paint::parse('url(http://example.test/a.svg#g) red'));
+    }
 }
