@@ -321,10 +321,16 @@ final class Translator
      */
     private ?array $rootViewport = null;
     /**
-     * A `<use>`'s width/height override for the nested `<svg>` it
-     * references (SVG 2 §5.6.1), consumed by the next `paintNestedSvg`.
+     * A `<use>`'s width/height override for the viewport element it
+     * references (SVG 2 §5.6.2), consumed by the next
+     * `paintViewportInstance`.
      *
-     * @var array{w: float, h: float}|null
+     * Each axis is independent: `<use width="90">` on a 10x10
+     * `<symbol>` overrides only the width, so the instance is 90x10.
+     * Treating the override as all-or-nothing silently dropped the
+     * single-axis form.
+     *
+     * @var array{w: float|null, h: float|null}|null
      */
     private ?array $pendingUseViewport = null;
     /**
@@ -386,14 +392,27 @@ final class Translator
      */
     private function paintNestedSvg(\Phpdftk\Svg\NestedSvg $svg, ContentStream $stream): void
     {
-        // A `<use>` that references this svg overrides its viewport size.
+        $this->paintViewportInstance($svg, $stream);
+    }
+
+    /**
+     * Paint a viewport-establishing element — a nested `<svg>`, or the
+     * instance a `<use>` generates for a `<symbol>` (SVG 2 §5.5,
+     * §5.6.2). Both map their content into a rectangle and clip to it;
+     * the only difference is that a `<symbol>` never paints unless a
+     * `<use>` brings it here.
+     */
+    private function paintViewportInstance(\Phpdftk\Svg\ViewportElement $svg, ContentStream $stream): void
+    {
+        // A `<use>` that references this element overrides its viewport size.
         $override = $this->pendingUseViewport;
         $this->pendingUseViewport = null;
         $vp = $this->currentViewport();
         $x = $this->resolveViewportLength($svg->getAttribute('x'), $vp['w'], 0.0);
         $y = $this->resolveViewportLength($svg->getAttribute('y'), $vp['h'], 0.0);
-        // Width / height: a `<use>` override wins; otherwise the svg's own
-        // attributes, defaulting to 100% of the enclosing viewport.
+        // Width / height: a `<use>` override wins PER AXIS; otherwise the
+        // element's own attributes, defaulting to 100% of the enclosing
+        // viewport.
         $w = $override['w'] ?? $this->resolveViewportLength($svg->widthAttribute(), $vp['w'], $vp['w']);
         $h = $override['h'] ?? $this->resolveViewportLength($svg->heightAttribute(), $vp['h'], $vp['h']);
         if ($w <= 0.0 || $h <= 0.0) {
@@ -401,12 +420,15 @@ final class Translator
         }
 
         $stream->saveGraphicsState();
-        // Position the viewport, then clip overflow to it (the default
-        // `overflow: hidden` on a nested `<svg>`).
+        // Position the viewport, then clip overflow to it — SVG 2 §8.2
+        // puts `overflow: hidden` on viewport elements in the UA
+        // stylesheet, which the author can turn off.
         $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, $x, $y);
-        $stream->rectangle(0.0, 0.0, $w, $h);
-        $stream->clip();
-        $stream->endPath();
+        if (self::viewportClips($svg)) {
+            $stream->rectangle(0.0, 0.0, $w, $h);
+            $stream->clip();
+            $stream->endPath();
+        }
 
         $childViewport = ['w' => $w, 'h' => $h];
         $viewBox = $svg->viewBox();
@@ -428,6 +450,25 @@ final class Translator
         $this->paintChildren($svg, $stream);
         array_pop($this->viewportStack);
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Whether a viewport element clips its content to the viewport.
+     *
+     * SVG 2 §8.2 — the UA stylesheet sets `overflow: hidden` on `svg`,
+     * `symbol`, `image`, `marker` and `pattern`, so the DEFAULT here is
+     * to clip even though CSS's own initial value is `visible`. An
+     * author `overflow: visible` turns the clip off; so does `auto`,
+     * which SVG defines as "the content is not clipped" rather than
+     * CSS's scroll container.
+     */
+    private static function viewportClips(Element $element): bool
+    {
+        $overflow = $element->overflowValue();
+        if ($overflow === null) {
+            return true;
+        }
+        return $overflow !== 'visible' && $overflow !== 'auto';
     }
 
     /**
@@ -461,7 +502,7 @@ final class Translator
      * @return array{0: float, 1: float, 2: float, 3: float}
      */
     private function nestedViewBoxTransform(
-        \Phpdftk\Svg\NestedSvg $svg,
+        \Phpdftk\Svg\ViewportElement $svg,
         float $srcW,
         float $srcH,
         float $dstW,
@@ -2130,10 +2171,19 @@ final class Translator
         // width/height (if both set) become that svg's viewport.
         $useW = $use->width();
         $useH = $use->height();
-        $override = ($referent instanceof \Phpdftk\Svg\NestedSvg
-            && $useW !== null && $useH !== null && $useW > 0.0 && $useH > 0.0)
-            ? ['w' => $useW, 'h' => $useH]
-            : null;
+        $override = null;
+        if ($referent instanceof \Phpdftk\Svg\ViewportElement) {
+            // Per axis, and only for a POSITIVE override — a zero or
+            // absent dimension leaves the referenced element's own
+            // value (or the 100 % default) in force.
+            $override = [
+                'w' => $useW !== null && $useW > 0.0 ? $useW : null,
+                'h' => $useH !== null && $useH > 0.0 ? $useH : null,
+            ];
+            if ($override['w'] === null && $override['h'] === null) {
+                $override = null;
+            }
+        }
         if ($x === 0.0 && $y === 0.0 && $override === null) {
             $this->paintUseReferent($referent, $stream);
             return;
@@ -2176,7 +2226,12 @@ final class Translator
     private function paintUseReferent(Element $referent, ContentStream $stream): void
     {
         if ($referent instanceof Symbol) {
-            $this->paintChildren($referent, $stream);
+            // SVG 2 §5.5 / §5.6.2 — the instance a `<use>` generates for
+            // a `<symbol>` behaves as an `<svg>`: it establishes a
+            // viewport, maps any `viewBox` into it, and clips to it.
+            // Painting the children bare let a symbol's content spill
+            // across the whole document.
+            $this->paintViewportInstance($referent, $stream);
             return;
         }
         $this->paintElement($referent, $stream);

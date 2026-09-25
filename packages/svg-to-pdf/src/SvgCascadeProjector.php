@@ -123,6 +123,13 @@ final class SvgCascadeProjector
         'transform',
         'transform-origin',
         'transform-box',
+        // SVG 2 §8.2 — the UA stylesheet sets `overflow: hidden` on
+        // viewport elements, so the painter's "no value" branch CLIPS.
+        // CSS's registered initial is `visible`, and projecting that
+        // onto every element would switch clipping off document-wide;
+        // hence the strict `wasDeclared()` test, same as the geometry
+        // properties.
+        'overflow',
     ];
 
     /**

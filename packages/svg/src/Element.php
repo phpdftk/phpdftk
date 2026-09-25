@@ -179,6 +179,24 @@ abstract class Element extends Node
         return trim($raw);
     }
 
+    /**
+     * The `overflow` property, lowercased, or null when nothing
+     * declared it.
+     *
+     * Null is NOT the same as `visible` here: SVG 2 §8.2 has the UA
+     * stylesheet set `overflow: hidden` on viewport elements, so the
+     * caller's no-value branch clips. Returning CSS's own `visible`
+     * initial would stop every nested `<svg>` clipping.
+     */
+    public function overflowValue(): ?string
+    {
+        $raw = $this->presentationOrStyle('overflow');
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        return strtolower(trim($raw));
+    }
+
     public function clipPathValue(): ?string
     {
         return $this->presentationOrStyle('clip-path');

@@ -119,8 +119,15 @@ final class UseAndImageTest extends TestCase
         // `<symbol>` doesn't paint at the document level, but a `<use>`
         // pointing at it expands the contents. The transform painter at
         // 3M handles the q/cm/Q wrap automatically.
+        //
+        // The root needs a size: the instance a `<use>` generates for a
+        // `<symbol>` is a VIEWPORT (SVG 2 §5.6.2), and a symbol that
+        // declares no width/height inherits the enclosing viewport's —
+        // which in a document with no width, height or viewBox is
+        // nothing at all, so the instance is 0x0 and correctly renders
+        // nothing, exactly as a nested `<svg>` always has.
         $ops = $this->paintOpsOnly(
-            '<svg xmlns="http://www.w3.org/2000/svg">'
+            '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
             . '<symbol id="s"><rect width="10" height="10"/></symbol>'
             . '<use href="#s" x="20" y="20"/></svg>',
         );

@@ -55,7 +55,7 @@ final class CssBridge
         'stroke-width', 'stroke-linecap', 'stroke-linejoin',
         'stroke-miterlimit', 'stroke-dasharray', 'stroke-dashoffset',
         'font-family', 'font-size', 'font-weight', 'font-style',
-        'color', 'display', 'visibility',
+        'color', 'display', 'visibility', 'overflow',
     ];
 
     /**
