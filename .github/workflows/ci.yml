@@ -801,7 +801,28 @@ jobs:
           path: build/phpdoc/
 
       - name: Copy coverage to docs site
-        run: cp -r build/coverage/html docs/site/public/coverage
+        run: |
+          cp -r build/coverage/html docs/site/public/coverage
+          # GitHub hard-rejects any file over 100 MB, which failed the whole
+          # `_docs` push and so published NOTHING. php-code-coverage renders a
+          # per-line popover listing every test that covered that line, so a
+          # file exercised by most of the suite blows up far beyond its source
+          # size — PropertyRegistry.php is 1017 lines / 61 KB but its report
+          # page is ~147 MB. Such a page cannot be opened in a browser anyway,
+          # so replace just those with a stub and publish the rest.
+          find docs/site/public/coverage -type f -size +95M -print0 |
+            while IFS= read -r -d '' f; do
+              size=$(du -h "$f" | cut -f1)
+              echo "coverage: stubbing $(basename "$f") ($size exceeds GitHub's 100 MB limit)"
+              printf '%s\n' \
+                '<!doctype html><meta charset=utf-8>' \
+                '<title>Coverage report too large</title>' \
+                '<body style="font:16px/1.5 system-ui;max-width:42rem;margin:4rem auto;padding:0 1rem">' \
+                "<h1>Coverage page omitted</h1>" \
+                "<p>The line-by-line coverage report for this file was ${size}, above GitHub's 100&nbsp;MB per-file limit, so it is not published.</p>" \
+                '<p>Its size comes from the per-line list of covering tests, not from the source file, which is small. Run <code>composer coverage</code> locally to inspect it.</p>' \
+                '<p><a href="../index.html">Back to the coverage index</a></p>' > "$f"
+            done
 
       - name: Copy API docs to docs site
         run: cp -r build/phpdoc docs/site/public/api
