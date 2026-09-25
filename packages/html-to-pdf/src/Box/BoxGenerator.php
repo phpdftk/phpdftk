@@ -2280,21 +2280,38 @@ final class BoxGenerator
     }
 
     /**
-     * Open a list-item counter scope if `$element` is an HTML list owner.
-     * Returns whether one was pushed, so the caller knows to pop it once
-     * the element's subtree is done.
+     * Open a list-item counter scope if `$element` starts one. Returns
+     * whether one was pushed, so the caller knows to pop it once the
+     * element's subtree is done.
      *
-     * Only `ol`, `ul` and `menu` own a list. `<dir>` notably does not,
-     * despite being a legacy list element — items inside one keep counting
-     * in the list further out. This is only reached for elements that
-     * generate a box, so a `display: contents` list is skipped as an owner
-     * without needing a check here.
+     * Two things start a scope, and an element can be either:
+     *
+     *  - An HTML list owner: `ol`, `ul` or `menu`. `<dir>` notably is NOT
+     *    one, despite being a legacy list element — items inside one keep
+     *    counting in the list further out. This is only reached for
+     *    elements that generate a box, so a `display: contents` list is
+     *    skipped as an owner without needing a check here.
+     *  - CSS Containment 2 §3.1 STYLE CONTAINMENT, which scopes
+     *    `counter-increment` and `counter-set` to the subtree "as if the
+     *    counter-reset property had been set on the element". For the
+     *    `list-item` counter that makes the element a boundary: a fresh
+     *    count of 1 upwards inside, whatever the enclosing list is doing,
+     *    and the enclosing list carries on as though the contained items
+     *    did not exist.
+     *
+     * A list owner takes precedence when an element is both, because its
+     * own `start` / `reversed` describe the very counter containment would
+     * otherwise reset — and it isolates the subtree either way.
      *
      * @param list<\Phpdftk\Css\Sheet\Stylesheet> $sheets
      */
     private function pushListScope(Element $element, array $sheets, CascadedValues $values): bool
     {
         if (!in_array(strtolower($element->localName), ['ol', 'ul', 'menu'], true)) {
+            if ($this->hasStyleContainment($values)) {
+                $this->listScopes[] = ['count' => 0, 'step' => 1];
+                return true;
+            }
             return false;
         }
         $start = null;
@@ -2357,6 +2374,15 @@ final class BoxGenerator
         if ($display !== 'contents'
             && in_array(strtolower($element->localName), ['ol', 'ul', 'menu'], true)
         ) {
+            return $count;
+        }
+        // Style containment is the other boundary: the items inside belong
+        // to a counter of their own, so a reversed list must not count them
+        // towards the number it starts from. Note the element's OWN
+        // list-item-ness is already counted above — containment scopes an
+        // element's descendants, not the element itself, which is what
+        // keeps a style-contained `<li>` numbered in the list around it.
+        if ($display !== 'contents' && $this->hasStyleContainment($values)) {
             return $count;
         }
         for ($n = $element->firstChild; $n !== null; $n = $n->nextSibling) {
@@ -4951,6 +4977,36 @@ final class BoxGenerator
         if ($contain instanceof \Phpdftk\Css\Value\ValueList) {
             foreach ($contain->values as $part) {
                 if ($part instanceof Keyword && strtolower($part->name) === 'size') {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * CSS Containment 2 §3.1 — `true` when the cascaded `contain` enables
+     * STYLE containment, i.e. the `style` keyword on its own or within a
+     * list.
+     *
+     * Deliberately NOT `strict` or `content`. Both shorthands once implied
+     * style containment and the CSSWG removed it; the corpus pins the
+     * current behaviour in css/css-contain/contain-content-011 and
+     * contain-strict-011, whose titles read "'contain: <keyword>' does not
+     * turn on style containment". Treating them as counter scopes would
+     * also silently reset counters under the `contain: strict` this
+     * generator applies to `content-visibility: hidden` subtrees and to
+     * `::details-content`.
+     */
+    private function hasStyleContainment(\Phpdftk\Css\Cascade\CascadedValues $values): bool
+    {
+        $contain = $values->get('contain');
+        if ($contain instanceof Keyword) {
+            return strtolower($contain->name) === 'style';
+        }
+        if ($contain instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($contain->values as $part) {
+                if ($part instanceof Keyword && strtolower($part->name) === 'style') {
                     return true;
                 }
             }

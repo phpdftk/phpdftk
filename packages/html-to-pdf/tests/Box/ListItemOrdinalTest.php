@@ -288,6 +288,167 @@ final class ListItemOrdinalTest extends TestCase
         self::assertSame(['A' => 5, 'B' => 4], $got);
     }
 
+    /**
+     * CSS Containment 2 §3.1 — style containment scopes `counter-increment`
+     * and `counter-set` to the element's subtree, "as if the counter-reset
+     * property had been set on the element". For list items that makes a
+     * style-contained element a counter-scope boundary: a fresh `list-item`
+     * counter inside, and the list outside carries on as though the
+     * contained items were not there.
+     *
+     * The four cases below mirror css/css-contain/contain-style-ol-ordinal*,
+     * whose references pin every number.
+     */
+    public function testStyleContainmentOpensAFreshListItemCounter(): void
+    {
+        $got = $this->ordinals(<<<'HTML'
+            <ol>
+              <li data-label=A>A</li>
+              <li data-label=B>B</li>
+              <div style="contain:style">
+                <li data-label=X>X</li>
+                <li data-label=Y>Y</li>
+              </div>
+              <li data-label=C>C</li>
+              <li data-label=D>D</li>
+            </ol>
+        HTML);
+        self::assertSame(
+            ['A' => 1, 'B' => 2, 'X' => 1, 'Y' => 2, 'C' => 3, 'D' => 4],
+            $got,
+        );
+    }
+
+    public function testStyleContainmentIsNotEnteredByAReversedCount(): void
+    {
+        // The outer `<ol reversed>` owns FOUR items, not six: the contained
+        // two are in another counter's scope, so they neither raise the
+        // starting count nor consume a step. And the contained scope counts
+        // UP from 1 — it is a fresh counter, not a continuation of the
+        // reversed one.
+        $got = $this->ordinals(<<<'HTML'
+            <ol reversed>
+              <li data-label=A>A</li>
+              <li data-label=B>B</li>
+              <div style="contain:style">
+                <li data-label=X>X</li>
+                <li data-label=Y>Y</li>
+              </div>
+              <li data-label=C>C</li>
+              <li data-label=D>D</li>
+            </ol>
+        HTML);
+        self::assertSame(
+            ['A' => 4, 'B' => 3, 'X' => 1, 'Y' => 2, 'C' => 2, 'D' => 1],
+            $got,
+        );
+    }
+
+    public function testStyleContainmentIgnoresTheOuterStartAttribute(): void
+    {
+        $got = $this->ordinals(<<<'HTML'
+            <ol start="10">
+              <li data-label=A>A</li>
+              <li data-label=B>B</li>
+              <div style="contain:style">
+                <li data-label=X>X</li>
+                <li data-label=Y>Y</li>
+              </div>
+              <li data-label=C>C</li>
+              <li data-label=D>D</li>
+            </ol>
+        HTML);
+        self::assertSame(
+            ['A' => 10, 'B' => 11, 'X' => 1, 'Y' => 2, 'C' => 12, 'D' => 13],
+            $got,
+        );
+    }
+
+    public function testStyleContainmentIgnoresStartAndReversedTogether(): void
+    {
+        $got = $this->ordinals(<<<'HTML'
+            <ol start="10" reversed>
+              <li data-label=A>A</li>
+              <li data-label=B>B</li>
+              <div style="contain:style">
+                <li data-label=X>X</li>
+                <li data-label=Y>Y</li>
+              </div>
+              <li data-label=C>C</li>
+              <li data-label=D>D</li>
+            </ol>
+        HTML);
+        self::assertSame(
+            ['A' => 10, 'B' => 9, 'X' => 1, 'Y' => 2, 'C' => 8, 'D' => 7],
+            $got,
+        );
+    }
+
+    public function testAContainedItemStillTakesItsOwnOrdinalFromTheOuterList(): void
+    {
+        // Containment scopes the counters of an element's DESCENDANTS. The
+        // element itself is not inside its own scope, so a style-contained
+        // `<li>` keeps counting in the list around it — the numbering runs
+        // straight through 1..6.
+        $got = $this->ordinals(<<<'HTML'
+            <ol>
+              <li data-label=A>A</li>
+              <li data-label=B>B</li>
+              <li data-label=X style="contain:style">X</li>
+              <li data-label=Y style="contain:style">Y</li>
+              <li data-label=C>C</li>
+              <li data-label=D>D</li>
+            </ol>
+        HTML);
+        self::assertSame(
+            ['A' => 1, 'B' => 2, 'X' => 3, 'Y' => 4, 'C' => 5, 'D' => 6],
+            $got,
+        );
+    }
+
+    public function testStyleContainmentIsRecognisedInsideAKeywordList(): void
+    {
+        $got = $this->ordinals(<<<'HTML'
+            <ol>
+              <li data-label=A>A</li>
+              <div style="contain: layout style paint">
+                <li data-label=X>X</li>
+              </div>
+              <li data-label=B>B</li>
+            </ol>
+        HTML);
+        self::assertSame(['A' => 1, 'X' => 1, 'B' => 2], $got);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function nonStyleContainmentProvider(): iterable
+    {
+        // The CSSWG removed style containment from both shorthand keywords;
+        // css/css-contain/contain-content-011 and contain-strict-011 are
+        // titled "'contain: <kw>' does not turn on style containment".
+        // Treating them as scopes would restart the count at X.
+        yield 'content' => ['content'];
+        yield 'strict' => ['strict'];
+        yield 'layout' => ['layout'];
+        yield 'paint' => ['paint'];
+        yield 'size' => ['size'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('nonStyleContainmentProvider')]
+    public function testOnlyTheStyleKeywordOpensACounterScope(string $keyword): void
+    {
+        $got = $this->ordinals(<<<HTML
+            <ol>
+              <li data-label=A>A</li>
+              <div style="contain: $keyword">
+                <li data-label=X>X</li>
+              </div>
+              <li data-label=B>B</li>
+            </ol>
+        HTML);
+        self::assertSame(['A' => 1, 'X' => 2, 'B' => 3], $got);
+    }
+
     public function testItemsWithNoListAncestorAreOwnedByTheirParent(): void
     {
         // The second limb of HTML's list-owner rule: with no `ol` / `ul` /
