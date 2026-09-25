@@ -80,6 +80,65 @@ final class ContainerMeasurementTest extends TestCase
         );
     }
 
+    // -----------------------------------------------------------------
+    // Constructs that impose their own geometry: the measurer has to
+    // reproduce the painter's arithmetic, not flatten the text.
+    // -----------------------------------------------------------------
+
+    /**
+     * Each case pairs a construct with the inline size the PAINTER
+     * gives it. `<mspace>` boxes are used throughout because they have
+     * an exact width and no text content — which is the point: a
+     * measurer that flattens `textContent()` reports zero for all of
+     * them, and zero is indistinguishable from "no content here".
+     *
+     * @return iterable<string, array{0: string, 1: float}>
+     */
+    public static function constructWidths(): iterable
+    {
+        $w = static fn(int $px): string => "<mspace width=\"{$px}px\" height=\"10px\"/>";
+        // mfrac is as wide as its widest of numerator / denominator.
+        yield 'mfrac takes the wider of its two parts' => ["<mfrac>{$w(10)}{$w(30)}</mfrac>", 30.0];
+        yield 'mfrac with a wide numerator' => ["<mfrac>{$w(40)}{$w(15)}</mfrac>", 40.0];
+        // msqrt spans its content (the vinculum is drawn over it).
+        yield 'msqrt spans its content' => ["<msqrt>{$w(25)}</msqrt>", 25.0];
+        yield 'msqrt sums multiple children' => ["<msqrt>{$w(25)}{$w(15)}</msqrt>", 40.0];
+        // Scripts sit after the base, so the construct is base + script.
+        yield 'msup is base plus superscript' => ["<msup>{$w(20)}{$w(10)}</msup>", 30.0];
+        yield 'msub is base plus subscript' => ["<msub>{$w(20)}{$w(10)}</msub>", 30.0];
+        yield 'msubsup takes the wider script' => ["<msubsup>{$w(20)}{$w(10)}{$w(18)}</msubsup>", 38.0];
+        // Limits stack vertically, so the construct is the widest child.
+        yield 'mover takes the widest child' => ["<mover>{$w(20)}{$w(50)}</mover>", 50.0];
+        yield 'munder takes the widest child' => ["<munder>{$w(50)}{$w(20)}</munder>", 50.0];
+        yield 'munderover takes the widest child' => [
+            "<munderover>{$w(20)}{$w(50)}{$w(35)}</munderover>",
+            50.0,
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('constructWidths')]
+    public function testConstructIsMeasuredAtTheWidthThePainterGivesIt(
+        string $innerXml,
+        float $expected,
+    ): void {
+        self::assertEqualsWithDelta($expected, $this->intrinsicSize($innerXml)[0], 0.01);
+    }
+
+    public function testNestedConstructsCompose(): void
+    {
+        // A fraction inside a square root inside a row: every layer has
+        // to report a real size or the whole expression measures zero.
+        self::assertEqualsWithDelta(
+            60.0,
+            $this->intrinsicSize(
+                '<mrow><msqrt><mfrac>'
+                . '<mspace width="40px" height="10px"/><mspace width="20px" height="10px"/>'
+                . '</mfrac></msqrt><mspace width="20px" height="10px"/></mrow>',
+            )[0],
+            0.01,
+        );
+    }
+
     public function testAnnotationContentIsNotMeasured(): void
     {
         // A long annotation must not widen the equation: it is not
