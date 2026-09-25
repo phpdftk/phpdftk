@@ -3968,10 +3968,14 @@ final class PainterTest extends TestCase
         self::assertContains('rg', $opcodes, 'box still paints its background');
     }
 
-    public function testGridGapRulesPaintStrokes(): void
+    public function testGridGapRulesPaintFilledRects(): void
     {
         // CSS Gaps 1 — a grid with `column-rule` / `row-rule` and gaps
-        // paints rule lines (stroke `S`) centred in each gap.
+        // paints a rule in each gap. A solid rule is FILLED as the
+        // rectangle it covers (`re` + `f`), not stroked as a centre-line:
+        // the rasteriser snaps a stroke's half-pixel edges differently from
+        // a filled box, and every CSS Gaps reference draws its expected
+        // rule as a bordered / background-filled element.
         $doc = $this->html->parseDocument(
             '<html><body><div class="g">'
             . '<div></div><div></div><div></div><div></div>'
@@ -3995,8 +3999,82 @@ final class PainterTest extends TestCase
         (new Painter(792.0))->paint($root, $stream);
 
         $opcodes = $this->operatorTokens($stream->getOperators());
-        self::assertContains('S', $opcodes, 'gap rules stroke lines');
-        self::assertContains('RG', $opcodes, 'gap rules set a stroke colour');
+        self::assertContains('re', $opcodes, 'gap rules emit a rectangle');
+        self::assertContains('f', $opcodes, 'gap rules fill it');
+        self::assertContains('rg', $opcodes, 'gap rules set a FILL colour');
+        self::assertNotContains('S', $opcodes, 'a solid gap rule is not stroked');
+    }
+
+    public function testSolidGridGapRuleRectStraddlesTheGapCentre(): void
+    {
+        // CSS Gaps 1 §2 — the rule is centred in its gap, so a 4px rule in
+        // the 10px column gap of a `40px 40px` grid (gap spans x 40..50,
+        // centre 45) must cover x 43..47. Regression: stroking the
+        // centre-line left the rasterised rule a device pixel off whenever
+        // `width / 2` fell mid-pixel.
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="g"><div></div><div></div></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; margin: 0; }
+             .g { display: grid; grid-template-columns: 40px 40px;
+                  grid-template-rows: 40px; column-gap: 10px;
+                  column-rule-style: solid; column-rule-width: 4px;
+                  column-rule-color: blue; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter();
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $rect = null;
+        foreach ($stream->getOperators() as $op) {
+            if (!str_ends_with(rtrim($op), ' re')) {
+                continue;
+            }
+            $parts = preg_split('/\s+/', trim($op)) ?: [];
+            if (count($parts) === 5 && abs((float) $parts[2] - 4.0) < 0.01) {
+                $rect = $parts;
+            }
+        }
+        self::assertNotNull($rect, 'a 4px-wide rectangle is emitted for the column rule');
+        self::assertEqualsWithDelta(43.0, (float) $rect[0], 0.01, 'rule starts 2px left of the gap centre');
+        self::assertEqualsWithDelta(4.0, (float) $rect[2], 0.01, 'rule is column-rule-width wide');
+    }
+
+    public function testDashedGridGapRuleStillStrokes(): void
+    {
+        // Negative: only SOLID-family rules become filled rectangles. A
+        // `dashed` rule still needs the stroker (a fill cannot carry a dash
+        // pattern), so it keeps emitting `S` with a stroke colour.
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="g"><div></div><div></div></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; margin: 0; }
+             .g { display: grid; grid-template-columns: 40px 40px;
+                  grid-template-rows: 40px; column-gap: 10px;
+                  column-rule-style: dashed; column-rule-width: 4px;
+                  column-rule-color: blue; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter();
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertContains('S', $opcodes, 'a dashed gap rule is stroked');
+        self::assertContains('RG', $opcodes, 'a dashed gap rule sets a stroke colour');
     }
 
     public function testGridGapRulesSkippedForVerticalWritingMode(): void
@@ -4029,6 +4107,7 @@ final class PainterTest extends TestCase
 
         $opcodes = $this->operatorTokens($stream->getOperators());
         self::assertNotContains('S', $opcodes, 'vertical writing-mode → gap rules skipped');
+        self::assertNotContains('rg', $opcodes, 'no rule fill colour is set either');
     }
 
     public function testGridRowRuleSkippedForNonDefaultVisibilityItems(): void
@@ -4092,14 +4171,16 @@ final class PainterTest extends TestCase
         (new Painter(792.0))->paint($root, $stream);
 
         $opcodes = $this->operatorTokens($stream->getOperators());
-        self::assertContains('S', $opcodes, 'row-rule shorthand expands and paints a continuous rule');
+        self::assertContains('re', $opcodes, 'row-rule shorthand expands and paints a continuous rule');
+        self::assertContains('f', $opcodes, 'the rule rectangle is filled');
     }
 
-    public function testFlexGapRulesPaintStrokes(): void
+    public function testFlexGapRulesPaintFilledRects(): void
     {
         // CSS Gaps 1 — a wrapped flex container with `column-rule` /
-        // `row-rule` and gaps paints rule lines (stroke `S`) between its
-        // items (column-rule) and between its flex lines (row-rule).
+        // `row-rule` and gaps paints rules between its items (column-rule)
+        // and between its flex lines (row-rule). Solid rules are filled
+        // rectangles, sharing the grid painter's helper.
         $doc = $this->html->parseDocument(
             '<html><body><div class="f">'
             . '<div></div><div></div><div></div><div></div>'
@@ -4124,8 +4205,9 @@ final class PainterTest extends TestCase
         (new Painter(792.0))->paint($root, $stream);
 
         $opcodes = $this->operatorTokens($stream->getOperators());
-        self::assertContains('S', $opcodes, 'flex gap rules stroke lines');
-        self::assertContains('RG', $opcodes, 'flex gap rules set a stroke colour');
+        self::assertContains('re', $opcodes, 'flex gap rules emit rectangles');
+        self::assertContains('f', $opcodes, 'flex gap rules fill them');
+        self::assertNotContains('S', $opcodes, 'a solid flex gap rule is not stroked');
     }
 
     public function testFlexGapRulesSkippedForVerticalWritingMode(): void

@@ -10797,11 +10797,34 @@ final class Painter
             return;
         }
         $stream->saveGraphicsState();
+        // A solid rule covers exactly the same shape as a border edge, so
+        // FILL the rectangle it occupies rather than stroking a centre-line.
+        // The rasteriser snaps a stroke's half-pixel edges differently from
+        // a filled box, and every CSS Gaps reference draws the expected
+        // rule as a bordered / `background`-filled element — so stroking
+        // landed the rule one device pixel off whenever `width / 2` fell
+        // mid-pixel (a 5px rule centred on x=105 covered 103..107 instead
+        // of the reference's 102..106).
+        if ($styleName !== 'dashed' && $styleName !== 'dotted') {
+            $half = $width / 2.0;
+            $stream->setFillColorRGB($color->r, $color->g, $color->b);
+            if (abs($x1 - $x2) < abs($y1 - $y2)) {
+                // Vertical rule: fixed x, spanning y.
+                $stream->rectangle(min($x1, $x2) - $half, min($y1, $y2), $width, abs($y2 - $y1));
+            } else {
+                // Horizontal rule: fixed y, spanning x.
+                $stream->rectangle(min($x1, $x2), min($y1, $y2) - $half, abs($x2 - $x1), $width);
+            }
+            $stream->fill();
+            $stream->restoreGraphicsState();
+
+            return;
+        }
         $stream->setStrokeColorRGB($color->r, $color->g, $color->b);
         $stream->setLineWidth($width);
         if ($styleName === 'dashed') {
             $stream->setDashPattern([$width * 3, $width * 2], 0);
-        } elseif ($styleName === 'dotted') {
+        } else {
             $stream->setDashPattern([$width, $width * 1.5], 0);
         }
         $stream->moveTo($x1, $y1);
