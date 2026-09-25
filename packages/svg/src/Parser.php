@@ -79,12 +79,30 @@ final class Parser
         $this->walker->walk(
             $root,
             $doc,
-            createElement: fn(string $localName) => $this->makeElementForName($localName),
+            createElement: fn(string $localName, ?string $namespaceUri = null): Element
+                => $this->makeElement($localName, $namespaceUri),
             createText: fn(string $data) => new Text($data),
             setAttribute: static fn(Element $el, string $name, string $value) => $el->setAttribute($name, $value),
             appendChild: static fn(Element $parent, Node $child) => $parent->appendChild($child),
         );
         return $doc;
+    }
+
+    /**
+     * Build the typed element for one source node.
+     *
+     * SVG 2 §5.7 — an element from a FOREIGN namespace (and everything
+     * under it) is not rendered, so it becomes a
+     * {@see ForeignElement} the painter can skip wholesale. A null
+     * namespace means the document declared none at all, which older
+     * hand-written SVG does; those nodes are treated as SVG.
+     */
+    private function makeElement(string $localName, ?string $namespaceUri): Element
+    {
+        if ($namespaceUri !== null && $namespaceUri !== self::SVG_NS) {
+            return new ForeignElement($localName, $namespaceUri);
+        }
+        return $this->makeElementForName($localName);
     }
 
     private function makeElementForName(string $localName): Element

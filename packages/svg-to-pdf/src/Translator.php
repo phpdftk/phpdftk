@@ -2087,6 +2087,11 @@ final class Translator
             // in a `<mask>`. Skipping them here also skips their
             // nested shape children, which is what the spec wants
             // (SVG 2 §5.5 / §5.6 / §14.4 / §14.5).
+            // SVG 2 §5.7 — an element from a foreign namespace, and
+            // everything under it, is not rendered. Without this arm
+            // the generic "recurse into children" fallback painted an
+            // `<svg>` that an XHTML wrapper had smuggled in.
+            $element instanceof \Phpdftk\Svg\ForeignElement,
             $element instanceof Defs,
             $element instanceof Symbol,
             $element instanceof ClipPath,

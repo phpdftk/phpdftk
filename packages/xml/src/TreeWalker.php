@@ -29,7 +29,11 @@ namespace Phpdftk\Xml;
  * PHPStan can't span generic types across the consumer/walker
  * boundary; the docstring describes the expected shapes):
  *
- *   $createElement: (string $localName) → ConsumerElement
+ *   $createElement: (string $localName, ?string $namespaceURI) → ConsumerElement
+ *                   The namespace is passed so a consumer can tell a
+ *                   foreign-namespace subtree (XHTML inside SVG, say)
+ *                   from its own; consumers that don't care may
+ *                   declare a one-parameter closure.
  *   $createText:    (string $data)      → ConsumerText
  *   $setAttribute:  (ConsumerElement, string $name, string $value) → void
  *   $appendChild:   (ConsumerElement $parent, ConsumerNode $child)  → void
@@ -47,7 +51,7 @@ final class TreeWalker
      *                                       before calling.
      * @param mixed    $root             The typed root element to
      *                                    populate.
-     * @param \Closure $createElement     `(string) → ConsumerElement`
+     * @param \Closure $createElement     `(string, ?string) → ConsumerElement`
      * @param \Closure $createText        `(string) → ConsumerText`
      * @param \Closure $setAttribute      `(ConsumerElement, string, string) → void`
      * @param \Closure $appendChild       `(ConsumerElement, ConsumerNode) → void`
@@ -100,7 +104,7 @@ final class TreeWalker
                 continue;
             }
             if ($child instanceof \DOMElement) {
-                $node = $createElement($child->localName);
+                $node = $createElement($child->localName, $child->namespaceURI);
                 $this->copyAttributes($child, $node, $setAttribute);
                 $this->copyChildren($child, $node, $createElement, $createText, $setAttribute, $appendChild);
                 $appendChild($dest, $node);
