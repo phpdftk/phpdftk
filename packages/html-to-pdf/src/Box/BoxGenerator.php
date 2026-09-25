@@ -705,6 +705,10 @@ final class BoxGenerator
         // scope of its own for its descendants.
         if ($display === 'list-item') {
             $box->listItemOrdinal = $this->nextListItemOrdinal($element, $values);
+            // HTML §15.3.9 — a `<fieldset>` renders through an anonymous
+            // content box and generates no `::marker`. It still consumes
+            // its ordinal above; only the drawing is suppressed.
+            $box->suppressesListMarker = strtolower($element->localName) === 'fieldset';
         }
         $openedListScope = $this->pushListScope($element, $sheets, $values);
 
@@ -722,7 +726,9 @@ final class BoxGenerator
         // the painter-only `outside` path can never do — gives an empty
         // `<li></li>` a line box, so a list of empty items still steps
         // down one line-height per item instead of collapsing to zero.
-        $insideMarker = $this->insideListMarker($element, $values, $box->listItemOrdinal);
+        $insideMarker = $box->suppressesListMarker
+            ? null
+            : $this->insideListMarker($element, $values, $box->listItemOrdinal);
         if ($insideMarker !== null) {
             $rawChildren[] = $insideMarker;
         }

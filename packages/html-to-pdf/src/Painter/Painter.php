@@ -5126,6 +5126,11 @@ final class Painter
         if (!$display instanceof Keyword || strtolower($display->name) !== 'list-item') {
             return;
         }
+        // HTML §15.3.9 — a `<fieldset>` is a list item that draws no
+        // marker. Flagged at box generation; see Box::$suppressesListMarker.
+        if ($box->suppressesListMarker) {
+            return;
+        }
         // CSS Lists 3 §3.3 — `list-style-position: inside` markers are
         // INLINE content, not a box painted alongside the principal box.
         // BoxGenerator materialises those as a text child so they take

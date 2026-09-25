@@ -97,6 +97,24 @@ abstract class Box
     public ?int $listItemOrdinal = null;
 
     /**
+     * True when this box must not draw a `::marker`, even though its
+     * `display` is `list-item`.
+     *
+     * HTML §15.3.9 says a `<fieldset>` "is expected to not generate a
+     * `::marker` pseudo-element" — its contents render through an
+     * anonymous content box that owns no marker position. The suppression
+     * is unconditional, so it cannot be spelled as a `list-style-type:
+     * none` UA rule an author could override with `list-style-type:
+     * decimal`.
+     *
+     * The counter still advances: `display: list-item` implies
+     * `counter-increment: list-item 1` whether or not anything is drawn,
+     * so a marker-less fieldset still consumes an ordinal from the list
+     * around it.
+     */
+    public bool $suppressesListMarker = false;
+
+    /**
      * Set by {@see \Phpdftk\HtmlToPdf\Layout\BlockLayout} on an
      * out-of-flow box that CSS Anchor Positioning 1 §10
      * (`position-visibility`) makes *strongly hidden*. A strongly hidden
