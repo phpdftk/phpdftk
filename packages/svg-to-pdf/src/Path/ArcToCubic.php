@@ -48,13 +48,90 @@ final class ArcToCubic
         float $x2,
         float $y2,
     ): array {
+        $arc = self::centreParameters(
+            $x1,
+            $y1,
+            $rx,
+            $ry,
+            $xAxisRotationDegrees,
+            $largeArc,
+            $sweep,
+            $x2,
+            $y2,
+        );
+        if ($arc === null) {
+            return [];
+        }
+        $cx = $arc['cx'];
+        $cy = $arc['cy'];
+        $rx = $arc['rx'];
+        $ry = $arc['ry'];
+        $cosPhi = cos($arc['phi']);
+        $sinPhi = sin($arc['phi']);
+        $theta1 = $arc['theta1'];
+        $deltaTheta = $arc['delta'];
+
+        // Step 6 — split into <= 90 degree segments and emit one cubic each.
+        $segmentCount = (int) ceil(abs($deltaTheta) / self::MAX_SEGMENT_ANGLE);
+        if ($segmentCount === 0) {
+            return [];
+        }
+        $segmentDelta = $deltaTheta / $segmentCount;
+        $alpha = (4.0 / 3.0) * tan($segmentDelta / 4.0);
+
+        $segments = [];
+        $theta = $theta1;
+        for ($i = 0; $i < $segmentCount; $i++) {
+            $thetaNext = $theta + $segmentDelta;
+            $segments[] = self::cubicSegment(
+                $cx,
+                $cy,
+                $rx,
+                $ry,
+                $cosPhi,
+                $sinPhi,
+                $theta,
+                $thetaNext,
+                $alpha,
+            );
+            $theta = $thetaNext;
+        }
+        return $segments;
+    }
+
+    /**
+     * SVG 1.1 Appendix F.6.5 — end-point parameterisation to centre
+     * parameterisation.
+     *
+     * Split out of {@see convert()} so callers that need the TRUE
+     * ellipse rather than its Bezier approximation (arc-length
+     * measurement for SVG 2 section 9.6 `pathLength`, for one) work from
+     * the same radius correction and the same sweep normalisation the
+     * painter uses.
+     *
+     * Returns null for the degenerate inputs `convert()` also rejects:
+     * a zero-length chord or a zero radius.
+     *
+     * @return array{cx: float, cy: float, rx: float, ry: float, phi: float, theta1: float, delta: float}|null
+     */
+    public static function centreParameters(
+        float $x1,
+        float $y1,
+        float $rx,
+        float $ry,
+        float $xAxisRotationDegrees,
+        bool $largeArc,
+        bool $sweep,
+        float $x2,
+        float $y2,
+    ): ?array {
         if (abs($x1 - $x2) < self::ZERO_LENGTH_EPSILON
             && abs($y1 - $y2) < self::ZERO_LENGTH_EPSILON
         ) {
-            return [];
+            return null;
         }
         if ($rx === 0.0 || $ry === 0.0) {
-            return [];
+            return null;
         }
 
         $rx = abs($rx);
@@ -110,32 +187,15 @@ final class ArcToCubic
             $deltaTheta += 2.0 * M_PI;
         }
 
-        // Step 6 — split into ≤ 90° segments and emit one cubic each.
-        $segmentCount = (int) ceil(abs($deltaTheta) / self::MAX_SEGMENT_ANGLE);
-        if ($segmentCount === 0) {
-            return [];
-        }
-        $segmentDelta = $deltaTheta / $segmentCount;
-        $alpha = (4.0 / 3.0) * tan($segmentDelta / 4.0);
-
-        $segments = [];
-        $theta = $theta1;
-        for ($i = 0; $i < $segmentCount; $i++) {
-            $thetaNext = $theta + $segmentDelta;
-            $segments[] = self::cubicSegment(
-                $cx,
-                $cy,
-                $rx,
-                $ry,
-                $cosPhi,
-                $sinPhi,
-                $theta,
-                $thetaNext,
-                $alpha,
-            );
-            $theta = $thetaNext;
-        }
-        return $segments;
+        return [
+            'cx' => $cx,
+            'cy' => $cy,
+            'rx' => $rx,
+            'ry' => $ry,
+            'phi' => $phi,
+            'theta1' => $theta1,
+            'delta' => $deltaTheta,
+        ];
     }
 
     /**

@@ -56,6 +56,11 @@ final class SvgCascadeProjector
         'stroke-miterlimit',
         'stroke-dasharray',
         'stroke-dashoffset',
+        // SVG 2 §9.6 — `path-length` is the CSS spelling of the
+        // `pathLength` presentation attribute. Projected like any
+        // other property so a stylesheet rule out-ranks the
+        // attribute, which sits at specificity 0 per §6.7.
+        'path-length',
         'fill-opacity',
         'stroke-opacity',
         'opacity',

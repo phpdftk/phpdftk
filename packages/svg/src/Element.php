@@ -383,6 +383,43 @@ abstract class Element extends Node
     }
 
     /**
+     * SVG 2 §9.6 — `pathLength`, the author's own declaration of how
+     * long this element's path is. Every distance-ALONG-the-path
+     * quantity (`stroke-dasharray`, `stroke-dashoffset`, a
+     * `<textPath>` `startOffset`) is then authored in those units and
+     * scaled by `geometricLength / pathLength` at paint time.
+     *
+     * Precedence: the CSS `path-length` property beats the
+     * `pathLength` presentation attribute, per SVG 2 §6.7 — a
+     * presentation attribute is an author-origin declaration of the
+     * lowest possible specificity, so any rule that names the element
+     * out-ranks it. The cascade reaches us through the projected
+     * `style` attribute, which is why the CSS spelling is consulted
+     * first.
+     *
+     * Returns null when absent or invalid. A NEGATIVE value is an
+     * error: SVG 2's "invalid value → the declaration is ignored" rule
+     * leaves the path unscaled rather than collapsing it. ZERO is
+     * explicitly valid and means a scaling factor of infinity, so it
+     * is returned as `0.0` for the caller to interpret — not folded
+     * into the null case.
+     */
+    public function pathLength(): ?float
+    {
+        $raw = $this->presentationOrStyle('path-length')
+            ?? $this->attributes['pathLength']
+            ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = $this->parseNumberPrefix($raw);
+        if ($value === null || $value < 0.0) {
+            return null;
+        }
+        return $value;
+    }
+
+    /**
      * `font-family` — CSS Fonts 4 §3.2. A comma-separated prioritised list
      * of family names; each entry is trimmed and surrounding single or
      * double quotes are stripped (CSS reserves quotes for names containing

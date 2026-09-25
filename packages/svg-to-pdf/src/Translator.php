@@ -41,6 +41,7 @@ use Phpdftk\Svg\Mask;
 use Phpdftk\Svg\Symbol;
 use Phpdftk\Svg\Use_;
 use Phpdftk\SvgToPdf\Geometry\BoundingBox;
+use Phpdftk\SvgToPdf\Path\PathLengthMeasure;
 use Phpdftk\Svg\Path;
 use Phpdftk\Svg\Pattern;
 use Phpdftk\Svg\Path\ArcTo;
@@ -1694,9 +1695,147 @@ final class Translator
         }
         $dash = $element->strokeDasharray();
         if ($dash !== []) {
-            $offset = (int) round($element->strokeDashoffset() ?? 0.0);
-            $stream->setDashPattern($dash, $offset);
+            // SVG 2 §9.6 — `pathLength` recalibrates every
+            // distance-along-the-path quantity, so the dash pattern is
+            // authored in the declared units and scaled here.
+            $scale = $this->pathLengthScale($element);
+            if (is_infinite($scale)) {
+                // `pathLength="0"` is a scaling factor of infinity: the
+                // first dash covers the whole path, which is a solid
+                // stroke. Emitting no `d` operator IS that stroke.
+                return;
+            }
+            $offset = (int) round(($element->strokeDashoffset() ?? 0.0) * $scale);
+            $stream->setDashPattern(
+                array_map(static fn(float $d): float => $d * $scale, $dash),
+                $offset,
+            );
         }
+    }
+
+    /**
+     * SVG 2 §9.6 — the factor that converts a distance expressed in
+     * the author's declared `pathLength` units into user units.
+     *
+     * `1.0` when the element declares no `pathLength`, or when we
+     * can't measure its geometry (an unmeasurable element must not
+     * silently rescale its dashes). `INF` when the author declared
+     * zero, which the spec defines as a scaling factor of infinity.
+     */
+    private function pathLengthScale(Element $element): float
+    {
+        $declared = $element->pathLength();
+        if ($declared === null) {
+            return 1.0;
+        }
+        $geometric = $this->geometricPathLength($element);
+        if ($geometric === null || $geometric <= 0.0) {
+            return 1.0;
+        }
+        if ($declared <= 0.0) {
+            return INF;
+        }
+        return $geometric / $declared;
+    }
+
+    /**
+     * The user agent's own computation of an element's path length, in
+     * user units — the numerator of the `pathLength` scaling factor.
+     *
+     * Geometry comes from the same resolvers the painter emits from, so
+     * a CSS-declared `r` (SVG 2 §10.1) measures the circle that
+     * actually paints. Shapes measure ANALYTICALLY rather than from the
+     * Bézier approximation the painter lowers them to: WPT's
+     * `pathLength` reftests pair a shape against an equivalent
+     * hand-written `<path>`, and the two only agree on the true
+     * geometry.
+     *
+     * Returns null for elements that have no path (text, groups,
+     * images) — `pathLength` has no meaning there.
+     */
+    private function geometricPathLength(Element $element): ?float
+    {
+        $vp = $this->currentViewport();
+        if ($element instanceof Path) {
+            return PathLengthMeasure::ofPathData($element->d());
+        }
+        if ($element instanceof Rect) {
+            // The painter emits a plain `re`, so the perimeter is the
+            // rectangle's, with no rounded-corner correction to make.
+            $w = $this->geometryLength($element, 'width', $vp['w']) ?? 0.0;
+            $h = $this->geometryLength($element, 'height', $vp['h']) ?? 0.0;
+            if ($w <= 0.0 || $h <= 0.0) {
+                return null;
+            }
+            return 2.0 * ($w + $h);
+        }
+        if ($element instanceof Circle) {
+            $r = $this->geometryLength($element, 'r', self::normalizedDiagonal($vp)) ?? 0.0;
+            return $r > 0.0 ? 2.0 * M_PI * $r : null;
+        }
+        if ($element instanceof Ellipse) {
+            $rx = $this->geometryLength($element, 'rx', $vp['w']);
+            $ry = $this->geometryLength($element, 'ry', $vp['h']);
+            if ($rx !== null && $rx < 0.0) {
+                $rx = null;
+            }
+            if ($ry !== null && $ry < 0.0) {
+                $ry = null;
+            }
+            $rx ??= $ry;
+            $ry ??= $rx;
+            if ($rx === null || $ry === null || $rx <= 0.0 || $ry <= 0.0) {
+                return null;
+            }
+            return self::ellipsePerimeter($rx, $ry);
+        }
+        if ($element instanceof Line) {
+            return hypot($element->x2() - $element->x1(), $element->y2() - $element->y1());
+        }
+        if ($element instanceof Polyline) {
+            return self::polylineLength($element->points(), closed: false);
+        }
+        if ($element instanceof Polygon) {
+            return self::polylineLength($element->points(), closed: true);
+        }
+        return null;
+    }
+
+    /**
+     * Ramanujan's second approximation to the ellipse perimeter —
+     * relative error below 1e-9 for every eccentricity an SVG author
+     * can write, and exact for the circle.
+     */
+    private static function ellipsePerimeter(float $rx, float $ry): float
+    {
+        $h = (($rx - $ry) ** 2) / (($rx + $ry) ** 2);
+        return M_PI * ($rx + $ry)
+            * (1.0 + (3.0 * $h) / (10.0 + sqrt(4.0 - 3.0 * $h)));
+    }
+
+    /**
+     * @param list<array{float, float}> $points
+     */
+    private static function polylineLength(array $points, bool $closed): ?float
+    {
+        $count = count($points);
+        if ($count < 2) {
+            return null;
+        }
+        $total = 0.0;
+        for ($i = 1; $i < $count; $i++) {
+            $total += hypot(
+                $points[$i][0] - $points[$i - 1][0],
+                $points[$i][1] - $points[$i - 1][1],
+            );
+        }
+        if ($closed) {
+            $total += hypot(
+                $points[0][0] - $points[$count - 1][0],
+                $points[0][1] - $points[$count - 1][1],
+            );
+        }
+        return $total > 0.0 ? $total : null;
     }
 
     private function dispatchElement(Element $element, ContentStream $stream): void
