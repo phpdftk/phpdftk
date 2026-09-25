@@ -1787,12 +1787,45 @@ final class Translator
             return null;
         }
         $opacity = $element->opacity() ?? 1.0;
-        $fillOpacity = ($element->fillOpacity() ?? 1.0) * $opacity;
-        $strokeOpacity = ($element->strokeOpacity() ?? 1.0) * $opacity;
+        // SVG 2 §13.2 vs §15.2 — `fill-opacity` / `stroke-opacity`
+        // modulate the element's OWN paint operations and reach
+        // descendants by INHERITANCE, which the cascade projection
+        // already carries. `opacity` is the group property that
+        // composites a subtree as a unit.
+        //
+        // Folding all three into one ExtGState made a container's
+        // fill-opacity stick to every descendant, and a child
+        // declaring `fill-opacity: 1` had nothing to emit (its value
+        // matched the default) so it could not escape. A container
+        // therefore contributes only its group opacity here.
+        $paints = self::paintsItsOwnGeometry($element);
+        $fillOpacity = ($paints ? $element->fillOpacity() ?? 1.0 : 1.0) * $opacity;
+        $strokeOpacity = ($paints ? $element->strokeOpacity() ?? 1.0 : 1.0) * $opacity;
         if ($fillOpacity >= 0.999 && $strokeOpacity >= 0.999) {
             return null;
         }
         return $this->page->ensureOpacityState($strokeOpacity, $fillOpacity);
+    }
+
+    /**
+     * Whether the element emits paint operations of its own, as
+     * opposed to being a container that only groups other elements.
+     *
+     * Mirrors the arms of {@see dispatchElement} that reach
+     * `applyFillAndStroke`: only those elements have a fill or stroke
+     * to modulate.
+     */
+    private static function paintsItsOwnGeometry(Element $element): bool
+    {
+        return $element instanceof Rect
+            || $element instanceof Circle
+            || $element instanceof Ellipse
+            || $element instanceof Line
+            || $element instanceof Polyline
+            || $element instanceof Polygon
+            || $element instanceof Path
+            || $element instanceof TextElement
+            || $element instanceof SvgImage;
     }
 
     /**
