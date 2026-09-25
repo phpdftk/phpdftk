@@ -99,6 +99,20 @@ final class MathmlPaintContext
          */
         public float $stretchTargetEm = 1.0,
         /**
+         * Target INLINE extent for a horizontally-stretching operator,
+         * in points; 0 means "no inline stretch target".
+         *
+         * The operator dictionary records which axis each stretchy
+         * operator grows along. Block-axis operators (fences) size
+         * themselves from the row's content height, which is what
+         * `$stretchTargetEm` carries. Inline-axis operators (overbars,
+         * wide arrows, over/under-braces) instead span the thing they
+         * are drawn over, and only the construct painting them knows
+         * how wide that is - so `paintUnderOver` sets this on the
+         * script's child context before painting it.
+         */
+        public float $stretchTargetWidthPt = 0.0,
+        /**
          * Whether the painter is in *display style* (taller, looser
          * proportions) or *inline style* (compact). Set by
          * {@see MathmlRenderer::draw()} from the `<math display>`

@@ -98,6 +98,47 @@ final readonly class MathmlMathFont
      */
     public function verticalVariantFor(int $postSubsetGid, int $requiredFunits): ?array
     {
+        return $this->variantFrom(
+            $this->variants?->verticalConstructions ?? [],
+            $postSubsetGid,
+            $requiredFunits,
+        );
+    }
+
+    /**
+     * Pick the smallest HORIZONTAL-stretch variant of the given glyph
+     * whose advance (in FUnit) is >= `$requiredFunits`.
+     *
+     * Same contract as {@see verticalVariantFor()} against the other
+     * axis: the operator dictionary says which axis an operator grows
+     * along, and an overbar, wide arrow or over/under-brace grows
+     * inline to span what it is drawn over rather than in the block
+     * direction.
+     *
+     * @return ?array{glyphId: int, advance: int}
+     *         glyphId is the PRE-subset GID; caller must translate to
+     *         post-subset before emitting hex.
+     */
+    public function horizontalVariantFor(int $postSubsetGid, int $requiredFunits): ?array
+    {
+        return $this->variantFrom(
+            $this->variants?->horizontalConstructions ?? [],
+            $postSubsetGid,
+            $requiredFunits,
+        );
+    }
+
+    /**
+     * Shared variant picker for both axes.
+     *
+     * @param array<int, \Phpdftk\FontParser\MathGlyphConstruction> $constructions
+     * @return ?array{glyphId: int, advance: int}
+     */
+    private function variantFrom(
+        array $constructions,
+        int $postSubsetGid,
+        int $requiredFunits,
+    ): ?array {
         if ($this->variants === null) {
             return null;
         }
@@ -105,7 +146,7 @@ final readonly class MathmlMathFont
         if ($oldGid === null) {
             return null;
         }
-        $construction = $this->variants->verticalConstructions[$oldGid] ?? null;
+        $construction = $constructions[$oldGid] ?? null;
         if ($construction === null) {
             return null;
         }
@@ -116,10 +157,11 @@ final readonly class MathmlMathFont
             }
         }
         // No variant is large enough - return the largest as a
-        // best-effort. (Real font assembly belongs in a follow-up.)
-        // `end()` would mutate the array's internal pointer which
-        // PHP rejects on a readonly property; index by count instead.
+        // best-effort. `end()` would mutate the array's internal
+        // pointer, which PHP rejects on a readonly property, so index
+        // by count instead.
         $count = count($construction->variants);
+
         return $count === 0 ? null : $construction->variants[$count - 1];
     }
 

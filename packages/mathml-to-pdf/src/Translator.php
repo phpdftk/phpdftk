@@ -139,8 +139,8 @@ final class Translator
             $element instanceof Maction => $this->paintMaction($element, $ctx),
             $element instanceof Merror  => $this->paintMerror($element, $ctx),
             $element instanceof Semantics => $this->paintSemantics($element, $ctx),
-            $element instanceof Mrow    => $this->walkChildren($element, $ctx),
-            $element instanceof GenericElement => $this->walkChildren($element, $ctx),
+            $element instanceof Mrow    => $this->walkChildren($element, $ctx, $operatorForm),
+            $element instanceof GenericElement => $this->walkChildren($element, $ctx, $operatorForm),
             // MathmlDocument flows through here too — its base class
             // is Element with no special painter behaviour for the
             // tracer-bullet slice, so children walk like an <mrow>.
@@ -1177,8 +1177,44 @@ final class Translator
         $constructLeftX = $ctx->cursorX;
         $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $baseWidth = $this->estimateWidth($base, $ctx->fontSize);
-        $overWidth = $over !== null ? $this->estimateWidth($over, $scriptFontSize) : 0.0;
-        $underWidth = $under !== null ? $this->estimateWidth($under, $scriptFontSize) : 0.0;
+        // An inline-axis stretchy script (an overbar, a wide arrow, an
+        // over/under-brace) spans the base rather than keeping its own
+        // width, so it measures as the base's width and is told to
+        // stretch to it. Core §3.4.3: the script counts when it is an
+        // EMBELLISHED operator, so an <mo> wrapped in an <mrow> still
+        // qualifies - which is exactly the embellished-op-* shape.
+        // Core §3.2.4.2 infers an <mo>'s form from its position among
+        // its parent's in-flow children - first is prefix, last is
+        // postfix, anything else infix - and that is as true inside a
+        // limit construct as inside an <mrow>. Source order here is
+        // base, underscript, overscript, so an <mover>'s script is the
+        // LAST of two children and therefore postfix. Getting this
+        // wrong made every accent resolve to the dictionary's default
+        // entry, which is neither stretchy nor horizontal, so no
+        // accent could ever stretch.
+        $slotCount = 1 + ($under !== null ? 1 : 0) + ($over !== null ? 1 : 0);
+        $underForm = $under === null
+            ? null
+            : ($over === null ? 'postfix' : 'infix');
+        $overForm = $over === null ? null : 'postfix';
+        if ($slotCount === 1) {
+            $underForm = null;
+            $overForm = null;
+        }
+        $overStretches = $over !== null
+            && $this->stretchesHorizontally($over, $ctx, $overForm);
+        $underStretches = $under !== null
+            && $this->stretchesHorizontally($under, $ctx, $underForm);
+        $overWidth = match (true) {
+            $over === null => 0.0,
+            $overStretches => $baseWidth,
+            default => $this->estimateWidth($over, $scriptFontSize),
+        };
+        $underWidth = match (true) {
+            $under === null => 0.0,
+            $underStretches => $baseWidth,
+            default => $this->estimateWidth($under, $scriptFontSize),
+        };
         $constructWidth = max($baseWidth, $overWidth, $underWidth);
 
         // Inline offset of the base: half the slack between it and
@@ -1208,7 +1244,12 @@ final class Translator
                 constructWidth: $constructWidth,
                 baseLeftX: $baseLeftX,
                 yOffset: $ctx->fontSize * $ctx->metrics->overscriptRaiseEm(),
-                accentCentreOffsetEm: $attachOverride,
+                // A stretched accent already spans the base, so
+                // centring it on an attachment point would pull it off
+                // one end.
+                accentCentreOffsetEm: $overStretches ? null : $attachOverride,
+                stretchToWidth: $overStretches ? $baseWidth : 0.0,
+                operatorForm: $overForm,
             );
         }
 
@@ -1220,6 +1261,8 @@ final class Translator
                 constructWidth: $constructWidth,
                 baseLeftX: $baseLeftX,
                 yOffset: -$ctx->fontSize * $ctx->metrics->underscriptDropEm(),
+                stretchToWidth: $underStretches ? $baseWidth : 0.0,
+                operatorForm: $underForm,
             );
         }
 
@@ -1229,6 +1272,37 @@ final class Translator
             $ctx->cursorX = $constructLeftX + $constructWidth;
             $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
+    }
+
+    /**
+     * Whether `$script` renders as an operator that stretches along
+     * the INLINE axis - the overbars, wide arrows and over/under
+     * braces that span what they are drawn over.
+     *
+     * Reads the core operator (Core §3.4.3), so an `<mo>` wrapped in
+     * an `<mrow>`, `<mstyle>` or `<mpadded>` still counts, then takes
+     * the axis from the operator dictionary. An author's explicit
+     * `stretchy` attribute wins over the dictionary's bit, the same
+     * way {@see isStretchy} resolves it.
+     */
+    private function stretchesHorizontally(
+        Element $script,
+        MathmlPaintContext $ctx,
+        ?string $form,
+    ): bool {
+        if ($ctx->mathFont === null || $form === null) {
+            return false;
+        }
+        $mo = $this->coreOperator($script);
+        if ($mo === null) {
+            return false;
+        }
+        $entry = OperatorDictionary::lookup(
+            $mo->textContent(),
+            $mo->form() ?? $form,
+        );
+
+        return $entry['horizontal'] && $this->isStretchy($mo, $entry);
     }
 
     /**
@@ -1250,9 +1324,16 @@ final class Translator
         float $baseLeftX,
         float $yOffset,
         ?float $accentCentreOffsetEm = null,
+        float $stretchToWidth = 0.0,
+        ?string $operatorForm = null,
     ): void {
         $scriptFontSize = $this->scriptFontSizeFor($ctx);
-        $scriptWidth = $this->estimateWidth($script, $scriptFontSize);
+        // A script that stretches along the inline axis ends up as
+        // wide as it was asked to be, so it is placed at that width
+        // rather than at its unstretched measurement.
+        $scriptWidth = $stretchToWidth > 0.0
+            ? $stretchToWidth
+            : $this->estimateWidth($script, $scriptFontSize);
         if ($accentCentreOffsetEm !== null) {
             // Centre the script on the attachment point reported by
             // the font instead of the geometric centre.
@@ -1269,7 +1350,8 @@ final class Translator
             $scriptStartX,
             $ctx->baselineY + $yOffset,
         );
-        $this->paint($script, $scriptCtx);
+        $scriptCtx->stretchTargetWidthPt = $stretchToWidth;
+        $this->paint($script, $scriptCtx, $operatorForm);
 
         // Restore: end at the construct's right edge on the original
         // baseline so subsequent siblings flow correctly.
@@ -1476,6 +1558,7 @@ final class Translator
             metrics: $ctx->metrics,
             mathFont: $ctx->mathFont,
             stretchTargetEm: $ctx->stretchTargetEm,
+            stretchTargetWidthPt: $ctx->stretchTargetWidthPt,
             displayStyle: $newDisplay,
             scriptLevel: $newLevel,
         );
@@ -1940,6 +2023,15 @@ final class Translator
             return false;
         }
 
+        // Core §3.2.4 records which AXIS each stretchy operator grows
+        // along. An overbar or a wide arrow spans what it is drawn
+        // over (inline); a fence grows with the row's content height
+        // (block). They take their target from different places, so
+        // the axis decides both which variant list to search and what
+        // to measure against.
+        if ($entry['horizontal']) {
+            return $this->tryHorizontalStretchyEmit($baseGid, $ctx);
+        }
         $requiredFunits = (int) round(
             $ctx->stretchTargetEm * $ctx->mathFont->unitsPerEm,
         );
@@ -1973,6 +2065,39 @@ final class Translator
             return $this->emitStretchyVariant($variant, $ctx);
         }
         return false;
+    }
+
+    /**
+     * Emit an inline-axis stretched variant of `$baseGid`, sized to
+     * the width the enclosing construct asked for.
+     *
+     * The target comes from `$ctx->stretchTargetWidthPt`, which
+     * {@see paintUnderOver} sets to the base's inline size before
+     * painting an over/underscript. With no target (a stretchy
+     * horizontal operator outside such a construct) there is nothing
+     * to span, so this declines and the caller emits the plain glyph.
+     *
+     * Returns false on any miss - no target, no horizontal
+     * construction for the glyph, or a variant the subsetter dropped -
+     * so the caller falls through to the unstretched emit rather than
+     * drawing a tofu.
+     */
+    private function tryHorizontalStretchyEmit(
+        int $baseGid,
+        MathmlPaintContext $ctx,
+    ): bool {
+        if ($ctx->mathFont === null || $ctx->stretchTargetWidthPt <= 0.0) {
+            return false;
+        }
+        $requiredFunits = (int) round(
+            $ctx->stretchTargetWidthPt / $ctx->fontSize * $ctx->mathFont->unitsPerEm,
+        );
+        $variant = $ctx->mathFont->horizontalVariantFor($baseGid, $requiredFunits);
+        if ($variant === null) {
+            return false;
+        }
+
+        return $this->emitStretchyVariant($variant, $ctx);
     }
 
     /**
@@ -2262,8 +2387,11 @@ final class Translator
     // Helpers
     // -----------------------------------------------------------------
 
-    private function walkChildren(Element $parent, MathmlPaintContext $ctx): void
-    {
+    private function walkChildren(
+        Element $parent,
+        MathmlPaintContext $ctx,
+        ?string $inheritedForm = null,
+    ): void {
         $elementChildren = $this->elementChildren($parent);
         $count = count($elementChildren);
         if ($count === 0) {
@@ -2292,7 +2420,19 @@ final class Translator
         $formByIndex = [];
         foreach ($elementChildren as $i => $child) {
             if ($child instanceof Mo) {
-                $formByIndex[$i] = $this->effectiveOperatorForm($child, $i, $count);
+                // Core §3.2.4.2 determines an <mo>'s form from the
+                // position of the EMBELLISHED OPERATOR it is the core
+                // of, not from its own position. A lone <mo> inside a
+                // wrapper is that wrapper's core, so it inherits the
+                // form the wrapper was painted with instead of
+                // recomputing 'infix' from being an only child - which
+                // is what made `<mover><mtext/><mrow><mo>accent</mo>
+                // </mrow></mover>` resolve to the dictionary default
+                // and refuse to stretch, while the unwrapped form
+                // stretched fine.
+                $formByIndex[$i] = $count === 1 && $inheritedForm !== null
+                    ? $inheritedForm
+                    : $this->effectiveOperatorForm($child, $i, $count);
             }
         }
 
@@ -2594,6 +2734,7 @@ final class Translator
             metrics: $parent->metrics,
             mathFont: $parent->mathFont,
             stretchTargetEm: $parent->stretchTargetEm,
+            stretchTargetWidthPt: $parent->stretchTargetWidthPt,
             displayStyle: false,
             scriptLevel: min(2, $parent->scriptLevel + $levelDelta),
         );
@@ -2633,6 +2774,7 @@ final class Translator
             metrics: $ctx->metrics,
             mathFont: $ctx->mathFont,
             stretchTargetEm: $ctx->stretchTargetEm,
+            stretchTargetWidthPt: $ctx->stretchTargetWidthPt,
             displayStyle: $childDisplay,
             scriptLevel: $childLevel,
         );
@@ -2903,6 +3045,7 @@ final class Translator
             metrics: $ctx->metrics,
             mathFont: $ctx->mathFont,
             stretchTargetEm: $ctx->stretchTargetEm,
+            stretchTargetWidthPt: $ctx->stretchTargetWidthPt,
             displayStyle: $ctx->displayStyle,
             scriptLevel: $ctx->scriptLevel,
             fillColor: $ctx->fillColor,
@@ -2946,6 +3089,7 @@ final class Translator
             metrics: $ctx->metrics,
             mathFont: $ctx->mathFont,
             stretchTargetEm: $ctx->stretchTargetEm,
+            stretchTargetWidthPt: $ctx->stretchTargetWidthPt,
             displayStyle: $ctx->displayStyle,
             scriptLevel: $ctx->scriptLevel,
         );
@@ -3683,6 +3827,7 @@ final class Translator
             metrics: $ctx->metrics,
             mathFont: $ctx->mathFont,
             stretchTargetEm: $ctx->stretchTargetEm,
+            stretchTargetWidthPt: $ctx->stretchTargetWidthPt,
             displayStyle: $ctx->displayStyle,
             scriptLevel: $ctx->scriptLevel,
             fillColor: $fg,
