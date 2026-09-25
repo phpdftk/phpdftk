@@ -37,6 +37,12 @@ final class Parser
      */
     public function parseDocument(string $html, ?string $encoding = null): Document
     {
+        // HTML §13.2.3 — the tokenizer works in UTF-8, so a document in a
+        // legacy encoding has to be transcoded FIRST. Skipping this did
+        // not merely mislabel such a document, it mis-read it: every
+        // non-ASCII byte became U+FFFD, so `<meta charset=windows-1251>`
+        // rendered replacement boxes where its text should be.
+        $html = EncodingSniffer::toUtf8($html, $encoding);
         $tokenizer = new Tokenizer($html);
         $builder = new TreeBuilder($this->options);
         $builder->xhtmlSelfClosing = self::looksLikeXhtml($html);
