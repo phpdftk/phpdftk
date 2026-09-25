@@ -249,7 +249,32 @@ final class Translator
         $this->fontResolver = $page !== null && $writer !== null
             ? new FontResolver($writer, $page)
             : null;
+        // SVG 2 §8.4 — `transform` applies to the OUTERMOST `<svg>` as
+        // well, and transforms everything inside it. The root never
+        // goes through `paintElement()`, so its own transform has to be
+        // concatenated here. It composes BEFORE the viewBox origin
+        // shift: the viewBox coordinate system is what the root
+        // transform acts on.
+        //
+        // Resolved before the `try` so the `finally` that unwinds it
+        // can never see an unassigned variable.
+        $rootTransform = $document->transform();
+        $rootMatrix = $rootTransform === null
+            ? null
+            : $this->transformMatrixFor($document, $rootTransform);
         try {
+            if ($rootMatrix !== null) {
+                $stream->saveGraphicsState();
+                $stream->concatMatrix(
+                    $rootMatrix[0],
+                    $rootMatrix[1],
+                    $rootMatrix[2],
+                    $rootMatrix[3],
+                    $rootMatrix[4],
+                    $rootMatrix[5],
+                );
+                $this->pushMatrix($rootMatrix);
+            }
             $viewBox = $document->viewBox();
             if (
                 $baseMatrix === null
@@ -281,6 +306,10 @@ final class Translator
             }
             $this->paintChildren($document, $stream);
         } finally {
+            if ($rootMatrix !== null) {
+                $this->popMatrix();
+                $stream->restoreGraphicsState();
+            }
             $this->page = null;
             $this->writer = null;
             $this->document = null;
