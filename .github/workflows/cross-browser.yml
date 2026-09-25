@@ -70,7 +70,7 @@ jobs:
           extensions: zlib, openssl, simplexml, intl
           coverage: none
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
