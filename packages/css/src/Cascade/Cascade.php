@@ -261,6 +261,33 @@ final class Cascade
     }
 
     /**
+     * Does ANY active style rule in `$sheets` target the named
+     * pseudo-element?
+     *
+     * Box generation uses this as a cheap document-wide gate before
+     * paying a per-element `computeFor(..., $pseudoElement)` pass for a
+     * pseudo that is only worth materialising when an author actually
+     * styled it (`::first-letter`, `::first-line`). Without the gate
+     * every element in every document pays an extra full cascade run.
+     *
+     * @param list<Stylesheet> $sheets
+     */
+    public function declaresPseudoElement(array $sheets, string $name): bool
+    {
+        $name = strtolower($name);
+        foreach ($sheets as $sheet) {
+            foreach ($this->activeStyleRules($sheet->rules) as [$rule, $_layerIndex]) {
+                foreach ($rule->selectors->selectors as $sel) {
+                    if ($this->selectorPseudoElementName($sel) === $name) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Run the cascade for one element. `$parentValues` is the already-
      * computed result for the element's parent — used for inheritance.
      * Pass `null` for the root element.

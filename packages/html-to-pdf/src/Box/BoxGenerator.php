@@ -62,6 +62,17 @@ final class BoxGenerator
     private ?\Phpdftk\Css\ValueParser $attrParser = null;
 
     /**
+     * Document-wide gate for `::first-letter` box generation: null until
+     * the first block container asks, then the answer to "does any active
+     * rule in this document's sheets target `::first-letter`?".
+     *
+     * Almost no document styles `::first-letter`, and running a second
+     * full cascade pass per block container to find that out is pure
+     * waste — so the answer is computed once per {@see generate} walk.
+     */
+    private ?bool $hasFirstLetterRules = null;
+
+    /**
      * CSS Generated Content for Paged Media 3 §4 — running-element
      * store populated by `position: running(name)` declarations.
      * Keyed by the running name, value is the element's text
@@ -106,6 +117,7 @@ final class BoxGenerator
         $this->counters = [];
         $this->namedStrings = [];
         $this->runningElements = [];
+        $this->hasFirstLetterRules = null;
         return $this->buildElementBox($root, $sheets, null);
     }
 
@@ -782,6 +794,13 @@ final class BoxGenerator
             $rawChildren[] = $after;
         }
 
+        // CSS 2.1 §5.12.2 / CSS Pseudo 4 §4.1 — `::first-letter`. Runs on
+        // the assembled child list (after `::before`, which can itself
+        // supply the first letter) because the first typographic letter
+        // unit is a property of the block container's whole inline
+        // content, not of any one child.
+        $rawChildren = $this->applyFirstLetter($element, $sheets, $values, $box, $rawChildren);
+
         // CSS Flexbox 1 §4 / CSS Grid Layout 2 §6: an anonymous flex /
         // grid item that contains only whitespace is not rendered (as
         // if its text nodes were `display: none`). Without this filter
@@ -1384,6 +1403,233 @@ final class BoxGenerator
             $pseudo->addChild(new TextBox($element, $pseudoValues, $text));
         }
         return $pseudo;
+    }
+
+    /**
+     * CSS 2.1 §5.12.2 / CSS Pseudo 4 §4.1 — materialise `::first-letter`.
+     *
+     * The pseudo represents the first typographic letter unit on the first
+     * formatted line of a block container, together with any punctuation
+     * that precedes or follows it. Since the pseudo is styled exactly like
+     * an inline box wrapped around those characters, we implement it as
+     * one: the leading run is lifted out of its {@see TextBox} into an
+     * {@see InlineBox} carrying the pseudo's cascade, and the remainder
+     * stays behind carrying the host's.
+     *
+     * Only the text-start case is handled — the search gives up as soon as
+     * it meets anything that is not an in-flow inline box or text, because
+     * an atomic/replaced box in that position takes the first-letter slot
+     * and the pseudo then matches nothing.
+     *
+     * @param  list<Stylesheet> $sheets
+     * @param  list<Box>        $rawChildren
+     * @return list<Box>
+     */
+    private function applyFirstLetter(
+        Element $element,
+        array $sheets,
+        CascadedValues $values,
+        Box $box,
+        array $rawChildren,
+    ): array {
+        if ($rawChildren === []) {
+            return $rawChildren;
+        }
+        // The pseudo applies to block containers only (CSS Pseudo 4 §4.1):
+        // block / list-item / table-cell / table-caption / inline-block.
+        if (!$box instanceof BlockBox
+            && !$box instanceof AnonymousBlockBox
+            && !$box instanceof TableCellBox
+            && !$box instanceof AtomicInlineBox
+        ) {
+            return $rawChildren;
+        }
+        $this->hasFirstLetterRules ??= $this->cascade->declaresPseudoElement($sheets, 'first-letter');
+        if ($this->hasFirstLetterRules === false) {
+            return $rawChildren;
+        }
+        $pseudoValues = $this->cascade->computeFor($sheets, $element, $values, 'first-letter');
+        if (!$pseudoValues->hasDeclarations()) {
+            return $rawChildren;
+        }
+        $done = false;
+        return $this->splitFirstLetterIn($element, $pseudoValues, $rawChildren, $done);
+    }
+
+    /**
+     * Walk an in-flow inline run looking for the text node that owns the
+     * first typographic letter unit, and split it. `$done` latches once
+     * the search has either succeeded or established that no first letter
+     * exists on the first formatted line.
+     *
+     * @param  list<Box> $children
+     * @return list<Box>
+     */
+    private function splitFirstLetterIn(
+        Element $element,
+        CascadedValues $pseudoValues,
+        array $children,
+        bool &$done,
+    ): array {
+        $out = [];
+        foreach ($children as $child) {
+            if ($done) {
+                $out[] = $child;
+                continue;
+            }
+            // Out-of-flow boxes are not on the first formatted line at
+            // all, so a leading float / abs-pos box neither supplies the
+            // first letter nor stops the search.
+            if ($child->element !== null && $this->isOutOfFlow($child->style)) {
+                $out[] = $child;
+                continue;
+            }
+            if ($child instanceof TextBox) {
+                $split = $this->splitFirstLetterText($element, $pseudoValues, $child, $done);
+                foreach ($split as $piece) {
+                    $out[] = $piece;
+                }
+                continue;
+            }
+            if ($child instanceof InlineBox) {
+                $child->children = $this->splitFirstLetterIn(
+                    $element,
+                    $pseudoValues,
+                    $child->children,
+                    $done,
+                );
+                $out[] = $child;
+                continue;
+            }
+            // A block-level, atomic-inline or replaced box occupies the
+            // first-letter position; nothing after it can be the first
+            // letter of THIS element.
+            $out[] = $child;
+            $done = true;
+        }
+        return $out;
+    }
+
+    /**
+     * Split one {@see TextBox} at the end of its first typographic letter
+     * unit (plus surrounding punctuation), returning the replacement box
+     * list. Returns the original box unchanged (and leaves `$done` false)
+     * when the text is entirely collapsible white space, so the search
+     * carries on into the next sibling.
+     *
+     * @return list<Box>
+     */
+    private function splitFirstLetterText(
+        Element $element,
+        CascadedValues $pseudoValues,
+        TextBox $text,
+        bool &$done,
+    ): array {
+        $chars = $text->text === '' ? [] : mb_str_split($text->text, 1, 'UTF-8');
+        $count = count($chars);
+        $i = 0;
+        // Leading collapsible white space is not part of the first letter
+        // and keeps the host's style, so it stays outside the pseudo.
+        while ($i < $count && self::isCollapsibleSpace($chars[$i])) {
+            $i++;
+        }
+        if ($i >= $count) {
+            return [$text];
+        }
+        $start = $i;
+        while ($i < $count && self::isFirstLetterPunctuation($chars[$i])) {
+            $i++;
+        }
+        if ($i >= $count) {
+            // Punctuation with no letter behind it: per spec the pseudo
+            // would continue into the following content. We don't span
+            // boxes, so abandon rather than style the wrong run.
+            $done = true;
+            return [$text];
+        }
+        // One typographic letter unit: the base character plus any
+        // combining marks that cluster onto it.
+        $i++;
+        while ($i < $count && self::isCombiningMark($chars[$i])) {
+            $i++;
+        }
+        // Punctuation that FOLLOWS the first letter is included too.
+        while ($i < $count && self::isFirstLetterPunctuation($chars[$i])) {
+            $i++;
+        }
+        $done = true;
+
+        $leading = implode('', array_slice($chars, 0, $start));
+        $letter = implode('', array_slice($chars, $start, $i - $start));
+        $rest = implode('', array_slice($chars, $i));
+
+        $out = [];
+        if ($leading !== '') {
+            $out[] = new TextBox($text->element, $text->style, $leading);
+        }
+        // CSS Pseudo 4 §4.1 — `::first-letter` is inline unless it floats
+        // (the drop-cap case), which blockifies it like any other float.
+        $display = 'inline';
+        if ($this->isOutOfFlow($pseudoValues)) {
+            $display = 'block';
+            $pseudoValues->set('display', new Keyword('block'));
+        }
+        $letterBox = $this->makeBox($element, $pseudoValues, $display);
+        $letterBox->pseudoElement = 'first-letter';
+        $letterBox->addChild(new TextBox($element, $pseudoValues, $letter));
+        $out[] = $letterBox;
+        if ($rest !== '') {
+            $out[] = new TextBox($text->element, $text->style, $rest);
+        }
+        return $out;
+    }
+
+    /** White space the CSS Text 3 §4.1 processing model can collapse away. */
+    private static function isCollapsibleSpace(string $char): bool
+    {
+        return $char === ' ' || $char === "\t" || $char === "\n"
+            || $char === "\r" || $char === "\f";
+    }
+
+    /**
+     * Punctuation that joins the first letter. CSS Pseudo 4 §4.1 takes the
+     * whole Unicode Punctuation (P*) group; CSS 2.1 §5.12.2 named only the
+     * Open (Ps), Close (Pe), Initial quote (Pi), Final quote (Pf) and Other
+     * (Po) subset, which is what the CSS 2.1 test suite exercises. The
+     * broader current-spec set is a superset of it, so both are satisfied
+     * by matching every P* category.
+     */
+    private static function isFirstLetterPunctuation(string $char): bool
+    {
+        $cp = mb_ord($char, 'UTF-8');
+        if ($cp === false) {
+            return false;
+        }
+        return match (\IntlChar::charType($cp)) {
+            \IntlChar::CHAR_CATEGORY_START_PUNCTUATION,
+            \IntlChar::CHAR_CATEGORY_END_PUNCTUATION,
+            \IntlChar::CHAR_CATEGORY_INITIAL_PUNCTUATION,
+            \IntlChar::CHAR_CATEGORY_FINAL_PUNCTUATION,
+            \IntlChar::CHAR_CATEGORY_OTHER_PUNCTUATION,
+            \IntlChar::CHAR_CATEGORY_DASH_PUNCTUATION,
+            \IntlChar::CHAR_CATEGORY_CONNECTOR_PUNCTUATION => true,
+            default => false,
+        };
+    }
+
+    /** Unicode Mn / Mc / Me — marks that cluster onto the preceding base. */
+    private static function isCombiningMark(string $char): bool
+    {
+        $cp = mb_ord($char, 'UTF-8');
+        if ($cp === false) {
+            return false;
+        }
+        return match (\IntlChar::charType($cp)) {
+            \IntlChar::CHAR_CATEGORY_NON_SPACING_MARK,
+            \IntlChar::CHAR_CATEGORY_COMBINING_SPACING_MARK,
+            \IntlChar::CHAR_CATEGORY_ENCLOSING_MARK => true,
+            default => false,
+        };
     }
 
     /**

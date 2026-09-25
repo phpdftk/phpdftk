@@ -56,6 +56,20 @@ final class CascadedValues
         return isset($this->declared[$this->normalise($name)]);
     }
 
+    /**
+     * Did ANY declaration supply a value on this element?
+     *
+     * False for a bag built purely from inheritance + initial values.
+     * Pseudo-element box generation uses this to tell "an author styled
+     * `::first-letter`" from "nobody did, and this bag is just the host's
+     * inherited text styles" — a distinction `has()` cannot make, since
+     * every registered property answers `has()` once inheritance has run.
+     */
+    public function hasDeclarations(): bool
+    {
+        return $this->declared !== [];
+    }
+
     public function set(string $name, Value $value): void
     {
         $key = $this->normalise($name);
