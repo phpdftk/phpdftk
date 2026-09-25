@@ -34,22 +34,56 @@ final class Pattern extends Element
 
     public function x(): float
     {
-        return (float) ($this->getAttribute('x') ?? 0);
+        return $this->tileLength('x');
     }
 
     public function y(): float
     {
-        return (float) ($this->getAttribute('y') ?? 0);
+        return $this->tileLength('y');
     }
 
     public function width(): float
     {
-        return (float) ($this->getAttribute('width') ?? 0);
+        return $this->tileLength('width');
     }
 
     public function height(): float
     {
-        return (float) ($this->getAttribute('height') ?? 0);
+        return $this->tileLength('height');
+    }
+
+    /**
+     * One of the tile-rectangle lengths, in the units
+     * {@see patternUnits} implies.
+     *
+     * SVG 2 §13.3 — in the default `objectBoundingBox` mode a
+     * percentage is a FRACTION of the bounding box, so `100%` is one
+     * bounding box; a straight `(float)` cast read it as a hundred of
+     * them and blew the tile up until a single copy covered the whole
+     * shape. In `userSpaceOnUse` mode an absolute unit suffix converts
+     * to CSS px through the shared table.
+     *
+     * An absent or unparseable value is 0, which the painter already
+     * treats as "no tile, don't paint".
+     */
+    private function tileLength(string $attribute): float
+    {
+        $raw = $this->getAttribute($attribute);
+        if ($raw === null) {
+            return 0.0;
+        }
+        if (preg_match(
+            '/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*(%|[a-zA-Z]*)/',
+            $raw,
+            $m,
+        ) !== 1) {
+            return 0.0;
+        }
+        $value = (float) $m[1];
+        if ($m[2] === '%') {
+            return $value / 100.0;
+        }
+        return $value * Element::absoluteUnitScale($m[2]);
     }
 
     public function patternUnits(): string
