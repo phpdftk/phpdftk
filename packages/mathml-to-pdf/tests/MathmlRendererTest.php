@@ -131,6 +131,68 @@ final class MathmlRendererTest extends TestCase
         self::assertStringContainsString('Times-Italic', $bytes);
     }
 
+    // ---------------------------------------------------------------
+    // MathML Core styles `<mi>` with `text-transform: math-auto`,
+    // which substitutes ONLY characters that have a Mathematical
+    // Alphanumeric italic counterpart — it is not a blanket "slant
+    // any single character" rule (mi-mathvariant-2).
+    // ---------------------------------------------------------------
+
+    public function testSingleCharMiWithNoMathItalicFormStaysUpright(): void
+    {
+        // U+221E INFINITY has no mathematical-italic counterpart, so
+        // it must render in the same face as the neighbouring <mn>.
+        self::assertSame(
+            1,
+            $this->fontSwitchCount('<mn>1</mn><mi>&#x221e;</mi>'),
+            'infinity must not be slanted',
+        );
+    }
+
+    public function testSingleCharMiThatIsAlreadyItalicIsNotSlantedAgain(): void
+    {
+        // U+210E PLANCK CONSTANT is already an italic glyph and has
+        // no further math-italic mapping.
+        self::assertSame(
+            1,
+            $this->fontSwitchCount('<mn>1</mn><mi>&#x210e;</mi>'),
+        );
+    }
+
+    public function testSingleDigitMiStaysUpright(): void
+    {
+        // Digits have no math-italic form either.
+        self::assertSame(1, $this->fontSwitchCount('<mn>1</mn><mi>2</mi>'));
+    }
+
+    public function testSingleCharMiWithAMathItalicFormIsStillSlanted(): void
+    {
+        // Positive control for the gate: Greek alpha DOES map, so the
+        // stream picks up a second face.
+        self::assertSame(
+            2,
+            $this->fontSwitchCount('<mn>1</mn><mi>&#x3b1;</mi>'),
+        );
+    }
+
+    /**
+     * Number of DISTINCT font resources the painted content stream
+     * selects for `$body`. The renderer registers both standard faces
+     * on every draw, so the PDF always CONTAINS `Times-Italic`;
+     * whether the painter actually switched to it is only visible in
+     * the stream's `Tf` operands.
+     */
+    private function fontSwitchCount(string $body): int
+    {
+        $bytes = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            . $body . '</math>',
+        );
+        self::assertStringStartsWith('%PDF-', $bytes);
+        preg_match_all('#/(F\d+) [\d.]+ Tf#', $bytes, $matches);
+        return count(array_unique($matches[1]));
+    }
+
     public function testRendersMultiCharMiAsUpright(): void
     {
         // Multi-character `<mi>` (operators like sin, log, max) →

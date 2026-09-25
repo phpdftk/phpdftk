@@ -1899,7 +1899,8 @@ final class Translator
         // font for emitText's hex emission.
         $useItalic = $this->isSingleVisibleChar($content)
             && $mi->mathvariant() === null
-            && $tokenCtx->mathFont === null;
+            && $tokenCtx->mathFont === null
+            && self::hasMathItalicForm($content);
         if ($useItalic) {
             $tokenCtx->stream->setFont($tokenCtx->italic, $tokenCtx->fontSize);
         }
@@ -3586,6 +3587,28 @@ final class Translator
     private function isSingleVisibleChar(string $content): bool
     {
         return mb_strlen($content, 'UTF-8') === 1;
+    }
+
+    /**
+     * Whether `text-transform: math-auto` would actually substitute
+     * `$content` — i.e. whether the character HAS a Mathematical
+     * Alphanumeric italic counterpart.
+     *
+     * MathML Core styles `<mi>` with `text-transform: math-auto`,
+     * which only maps characters that have such a counterpart; it is
+     * not a blanket "slant single characters" rule. Italicising
+     * everything single-character instead slanted U+221E INFINITY
+     * (no italic form at all) and U+210E PLANCK CONSTANT (already an
+     * italic glyph, so it got a second slant) — which is precisely
+     * what mi-mathvariant-2 asserts must not happen, by matching a
+     * reference that marks both `mathvariant="normal"`.
+     *
+     * The mapping table is the authority: a character the transform
+     * leaves alone has no italic form.
+     */
+    private static function hasMathItalicForm(string $content): bool
+    {
+        return MathvariantTransform::apply($content, 'italic') !== $content;
     }
 
     // -----------------------------------------------------------------
