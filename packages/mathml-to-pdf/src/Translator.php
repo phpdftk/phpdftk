@@ -1965,10 +1965,12 @@ final class Translator
         $lspaceEm = $this->resolveOperatorSpacing(
             $mo->attributes['lspace'] ?? null,
             $entry['lspace'],
+            $ctx->fontSize,
         );
         $rspaceEm = $this->resolveOperatorSpacing(
             $mo->attributes['rspace'] ?? null,
             $entry['rspace'],
+            $ctx->fontSize,
         );
         // MathML Core §3.2.5.7.3 — `lspace` / `rspace` are the
         // operator's LEADING and TRAILING space along the inline
@@ -2371,13 +2373,43 @@ final class Translator
     }
 
     /**
-     * Resolve `<mo>`'s `lspace` / `rspace` attribute. Author values
-     * in em / unitless override the dictionary default; anything else
-     * (px, pt, junk, absent) falls through to the dictionary.
+     * Absolute CSS length units, in px per unit. html-to-pdf renders
+     * 1 CSS px as 1 PDF pt, so these double as pt-per-unit.
+     *
+     * @var array<string, float>
+     */
+    private const array ABSOLUTE_LENGTH_PX = [
+        'px' => 1.0,
+        'pt' => 96.0 / 72.0,
+        'pc' => 16.0,
+        'in' => 96.0,
+        'cm' => 96.0 / 2.54,
+        'mm' => 96.0 / 25.4,
+        'q' => 96.0 / (2.54 * 40.0),
+    ];
+
+    /**
+     * Resolve `<mo>`'s `lspace` / `rspace` attribute to em, relative
+     * to `$fontSizePt`. Returns `$dictionaryDefault` when the
+     * attribute is absent, empty, malformed, negative, or carries a
+     * unit this painter cannot resolve.
+     *
+     * MathML Core §3.2.4.1 types both attributes as
+     * `<length-percentage>`, so every absolute CSS unit is legal —
+     * not just `em`. Rejecting the rest silently substituted the
+     * dictionary's 5/18 em, which is why an `<mo lspace="0px">` (the
+     * shape every `mo-movablelimits*` fixture uses to zero the
+     * spacing out) still rendered a leading gap.
+     *
+     * A bare number is kept as em for compatibility with MathML 3
+     * documents. Percentages stay unresolved: they need a reference
+     * the painter does not thread here, and falling back to the
+     * dictionary is the safer reading.
      */
     private function resolveOperatorSpacing(
         ?string $raw,
         float $dictionaryDefault,
+        float $fontSizePt,
     ): float {
         if ($raw === null) {
             return $dictionaryDefault;
@@ -2389,12 +2421,21 @@ final class Translator
         if (!preg_match('/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/', $trimmed, $m)) {
             return $dictionaryDefault;
         }
-        $unit = strtolower($m[2]);
-        if ($unit !== 'em' && $unit !== '') {
+        $value = (float) $m[1];
+        if ($value < 0.0) {
             return $dictionaryDefault;
         }
-        $value = (float) $m[1];
-        return $value >= 0.0 ? $value : $dictionaryDefault;
+        $unit = strtolower($m[2]);
+        if ($unit === 'em' || $unit === '') {
+            return $value;
+        }
+        $pxPerUnit = self::ABSOLUTE_LENGTH_PX[$unit] ?? null;
+        if ($pxPerUnit === null || $fontSizePt <= 0.0) {
+            return $dictionaryDefault;
+        }
+        // 0 is unit-independent, so it resolves even at a font size
+        // the division would otherwise be meaningless for.
+        return $value * $pxPerUnit / $fontSizePt;
     }
 
     private function paintMs(Ms $ms, MathmlPaintContext $ctx): void
@@ -3578,6 +3619,17 @@ final class Translator
         if (($element instanceof Munder || $element instanceof Mover)
             && count($children) === 2
         ) {
+            // Core §3.4.3 — an inline-style construct whose base is a
+            // `movablelimits` operator renders its limits as SCRIPTS
+            // (paintLimitsAsScripts), i.e. base and script side by
+            // side, not stacked. Measuring it as a stack regardless
+            // under-reserved the inline size by the whole script
+            // width, which shifted whatever followed the `<math>`
+            // leftwards.
+            if ($ctx !== null && $this->shouldRouteLimitsToScripts($children[0], $ctx)) {
+                return $this->estimateWidth($children[0], $fontSize, $ctx)
+                    + $this->estimateWidth($children[1], $scriptSize, $ctx);
+            }
             // paintUnderOver: the children stack, so the construct is
             // as wide as the widest of them.
             return max(
@@ -3586,6 +3638,16 @@ final class Translator
             );
         }
         if ($element instanceof Munderover && count($children) === 3) {
+            // Same conversion as above; both limits become scripts
+            // attached at the base's inline end, so the wider of the
+            // two sets the extent (the `<msubsup>` formula).
+            if ($ctx !== null && $this->shouldRouteLimitsToScripts($children[0], $ctx)) {
+                return $this->estimateWidth($children[0], $fontSize, $ctx)
+                    + max(
+                        $this->estimateWidth($children[1], $scriptSize, $ctx),
+                        $this->estimateWidth($children[2], $scriptSize, $ctx),
+                    );
+            }
             return max(
                 $this->estimateWidth($children[0], $fontSize, $ctx),
                 $this->estimateWidth($children[1], $scriptSize, $ctx),
