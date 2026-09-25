@@ -5090,35 +5090,80 @@ final class BoxGenerator
                 1.0,
             );
         }
-        if (strlen($value) > 128) {
-            $value = substr($value, 0, 128);
+        // From here the algorithm is defined over CODE POINTS, not bytes.
+        // Splitting UTF-8 bytes instead turns one non-ASCII character into
+        // two blanked slots and shifts every component boundary after it —
+        // which is exactly the case `tranſparent` (U+017F) is built to
+        // catch.
+        $chars = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
+        if ($chars === false) {
+            // Not valid UTF-8; the byte sequence is all we have, and every
+            // non-hex byte is about to be blanked anyway. `$value` is
+            // known non-empty — the empty string returned at step 2.
+            $chars = str_split($value);
         }
-        if (str_starts_with($value, '#')) {
-            $value = substr($value, 1);
-        }
-        // Every non-hex character becomes `0`, then the string is padded
-        // to a multiple of three so it splits into equal R / G / B runs.
-        $value = preg_replace('/[^0-9a-f]/i', '0', $value) ?? '0';
-        if ($value === '') {
-            $value = '0';
-        }
-        while (strlen($value) % 3 !== 0) {
-            $value .= '0';
-        }
-        $componentLength = intdiv(strlen($value), 3);
-        $components = [
-            substr($value, 0, $componentLength),
-            substr($value, $componentLength, $componentLength),
-            substr($value, 2 * $componentLength, $componentLength),
-        ];
-        // Keep at most the leading two significant hex digits of each run.
-        foreach ($components as $i => $component) {
-            if (strlen($component) > 2) {
-                $trimmed = ltrim($component, '0');
-                $component = $trimmed === '' ? '0' : $trimmed;
-                $component = strlen($component) > 2 ? substr($component, 0, 2) : $component;
+        // Step 7 — a code point above the BMP becomes the TWO-character
+        // string "00", so it occupies two slots, not one.
+        $expanded = [];
+        foreach ($chars as $char) {
+            if (mb_strlen($char, 'UTF-8') === 1 && mb_ord($char, 'UTF-8') > 0xFFFF) {
+                $expanded[] = '0';
+                $expanded[] = '0';
+                continue;
             }
-            $components[$i] = str_pad($component, 2, '0', STR_PAD_LEFT);
+            $expanded[] = $char;
+        }
+        // Step 8 — truncate to 128 code points, then step 9 drops a
+        // leading `#`.
+        $expanded = array_slice($expanded, 0, 128);
+        if (($expanded[0] ?? '') === '#') {
+            array_shift($expanded);
+        }
+        // Step 10 — every non-hex code point becomes `0`.
+        foreach ($expanded as $i => $char) {
+            if (preg_match('/^[0-9a-fA-F]$/', $char) !== 1) {
+                $expanded[$i] = '0';
+            }
+        }
+        // Step 11 — pad until the length is a non-zero multiple of three.
+        while ($expanded === [] || count($expanded) % 3 !== 0) {
+            $expanded[] = '0';
+        }
+        $componentLength = intdiv(count($expanded), 3);
+        $components = [
+            implode('', array_slice($expanded, 0, $componentLength)),
+            implode('', array_slice($expanded, $componentLength, $componentLength)),
+            implode('', array_slice($expanded, 2 * $componentLength, $componentLength)),
+        ];
+        // Step 13 — components longer than 8 keep their LAST 8 characters.
+        if ($componentLength > 8) {
+            foreach ($components as $i => $component) {
+                $components[$i] = substr($component, $componentLength - 8);
+            }
+        }
+        // Step 14 — the leading-zero trim is a SINGLE loop whose condition
+        // ranges over all three components at once. Trimming them
+        // independently is the tempting bug: it shortens the runs that
+        // happen to start with `0` while leaving the others at full
+        // length, so step 15 then slices each at a different offset.
+        while (true) {
+            $trim = true;
+            foreach ($components as $component) {
+                if (strlen($component) <= 2 || $component[0] !== '0') {
+                    $trim = false;
+                    break;
+                }
+            }
+            if (!$trim) {
+                break;
+            }
+            foreach ($components as $i => $component) {
+                $components[$i] = substr($component, 1);
+            }
+        }
+        // Step 15 — whatever is still longer than two keeps its FIRST two.
+        foreach ($components as $i => $component) {
+            $components[$i] = strlen($component) > 2 ? substr($component, 0, 2) : $component;
         }
         return new \Phpdftk\Css\Value\Color(
             hexdec($components[0]) / 255.0,
