@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\Svg;
 
+use Phpdftk\Svg\Value\Transform;
+
 /**
  * SVG 2 §13.3 — `<pattern>` element. Defines a tile that paints
  * into the fill or stroke of any shape that references it via
@@ -88,6 +90,28 @@ final class Pattern extends Element
      * referenced pattern's attributes inherit into this one.
      * See SVG 2 §13.3 chain-resolution rules.
      */
+    /**
+     * SVG 2 §13.3 — `patternTransform`, an extra transform applied to
+     * the pattern tile's coordinate system on top of `patternUnits`.
+     *
+     * Read through the same attribute-or-CSS path as `transform`, so a
+     * `<style>` rule reaches it too. Null when absent, empty, `none`,
+     * or malformed.
+     */
+    public function patternTransform(): ?Transform
+    {
+        $raw = $this->presentationOrStyle('patternTransform')
+            ?? $this->getAttribute('patternTransform');
+        if ($raw === null || trim($raw) === '' || strtolower(trim($raw)) === 'none') {
+            return null;
+        }
+        try {
+            return Transform::parse($raw);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+    }
+
     public function href(): ?string
     {
         return $this->getAttribute('href')

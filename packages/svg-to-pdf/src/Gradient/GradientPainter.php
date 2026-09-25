@@ -115,6 +115,16 @@ final class GradientPainter
         if (!$gradient instanceof Gradient) {
             return null;
         }
+        // CSS Transforms 1 §11 — a non-invertible `gradientTransform`
+        // makes the paint SERVER invalid, so the referencing element
+        // falls back. Baking the singular matrix into the PDF
+        // pattern's `/Matrix` is undefined behaviour; renderers
+        // silently paint nothing, which looks the same as a missing
+        // fallback and isn't.
+        $transform = $gradient->gradientTransform();
+        if ($transform !== null && !$transform->isInvertible()) {
+            return null;
+        }
         $stops = $this->resolveStops($gradient);
         if (count($stops) < 2) {
             return null;

@@ -81,6 +81,27 @@ final class Transform
     }
 
     /**
+     * Whether the composed matrix can be inverted, i.e. whether its
+     * determinant is non-zero.
+     *
+     * CSS Transforms 1 §11: a non-invertible transform function list
+     * makes the element it applies to unrenderable. On a paint server
+     * (`gradientTransform`, `patternTransform`) that makes the SERVER
+     * invalid, so the referencing element uses its `<paint>` fallback.
+     *
+     * The threshold is relative to the matrix's own scale rather than
+     * absolute, so a transform expressed in tiny units isn't mistaken
+     * for a degenerate one.
+     */
+    public function isInvertible(): bool
+    {
+        [$a, $b, $c, $d] = $this->toMatrix();
+        $determinant = $a * $d - $b * $c;
+        $scale = max(abs($a), abs($b), abs($c), abs($d), 1.0);
+        return abs($determinant) > 1.0e-12 * $scale * $scale;
+    }
+
+    /**
      * Compose the function list about a pivot point, i.e.
      * `translate(ox, oy) · M · translate(-ox, -oy)`. This is how
      * `transform-origin` applies to a `transform` (CSS Transforms 1 §6).

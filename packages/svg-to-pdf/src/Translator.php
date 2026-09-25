@@ -3455,7 +3455,18 @@ final class Translator
             return null;
         }
         $target = $this->document->findByFragment($paint->id);
-        return $target instanceof Pattern ? $this->resolvePatternTemplate($target) : null;
+        if (!$target instanceof Pattern) {
+            return null;
+        }
+        $resolved = $this->resolvePatternTemplate($target);
+        // CSS Transforms 1 §11 — a non-invertible `patternTransform`
+        // invalidates the paint server, so the caller takes the
+        // ordinary paint path and lands on the `<paint>` fallback.
+        $transform = $resolved->patternTransform();
+        if ($transform !== null && !$transform->isInvertible()) {
+            return null;
+        }
+        return $resolved;
     }
 
     /**
