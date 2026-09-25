@@ -125,6 +125,22 @@ final class SvgCascadeProjector
         'transform-box',
     ];
 
+    /**
+     * Properties whose CSS declaration OUT-RANKS the presentation
+     * attribute of the same name, so the projection must run even when
+     * the element carries that attribute.
+     *
+     * Only `d` today (SVG 2 §9.3). The accessor reads the `style`
+     * declaration first and the attribute second, which is what makes
+     * the ordering work; every other property in this file relies on
+     * the reverse.
+     *
+     * @var list<string>
+     */
+    private const array PROJECTED_OVER_ATTRIBUTE = [
+        'd',
+    ];
+
     public function __construct(
         private readonly CssBridge $bridge = new CssBridge(),
     ) {}
@@ -171,6 +187,16 @@ final class SvgCascadeProjector
             if ($element->getAttribute($property) !== null) {
                 continue;
             }
+            if (!$values->wasDeclared($property)) {
+                continue;
+            }
+            $value = $values->get($property);
+            if ($value === null) {
+                continue;
+            }
+            $declarations[] = $property . ': ' . $value->toCss();
+        }
+        foreach (self::PROJECTED_OVER_ATTRIBUTE as $property) {
             if (!$values->wasDeclared($property)) {
                 continue;
             }

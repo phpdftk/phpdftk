@@ -579,10 +579,26 @@ abstract class Element extends Node
      */
     protected function presentationOrStyle(string $property): ?string
     {
-        $raw = $this->attributes[$property] ?? null;
-        if ($raw !== null) {
-            return $raw;
-        }
+        return $this->attributes[$property] ?? $this->styleProperty($property);
+    }
+
+    /**
+     * One declaration from the element's `style` attribute, ignoring
+     * the presentation attribute of the same name.
+     *
+     * Almost every SVG property wants
+     * {@see presentationOrStyle()} instead. This exists for the
+     * handful where the CSS property and the presentation attribute
+     * share a NAME and the CSS side has to win — `d` (SVG 2 §9.3) is
+     * the one that matters, since §6.7 puts a presentation attribute
+     * at specificity 0 and any rule naming the element out-ranks it.
+     *
+     * The first matching declaration wins, which is what makes an
+     * author's own inline `style` beat the cascade projection the
+     * renderer appends after it.
+     */
+    protected function styleProperty(string $property): ?string
+    {
         $style = $this->attributes['style'] ?? null;
         if ($style === null) {
             return null;
