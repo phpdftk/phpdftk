@@ -1,26 +1,26 @@
 {
-  "_comment": "Per-bucket in-scope PASS-COUNT floor for the WPT regression gate (scripts/wpt-scoreboard.php). Gate on counts, not percentages: counts are stable while the corpus total drifts. `tolerance` absorbs rasterisation jitter. Refresh after intentional gains with: php scripts/wpt-scoreboard.php --update. Numbers are settler-OFF (deterministic, no Playwright dependency) and rendered with the harness DEFAULT FONT (DejaVu Serif) so text-dependent reftests actually exercise text rather than passing blank. Set WPT_DEFAULT_FONT=none to reproduce the legacy font-less numbers. REBASELINED 2026-09-22: these numbers are NOT comparable to any earlier revision of this file. Three harness defects were fixed \u2014 reference resolution missed ~555 fixtures (namespaced <html:link rel=match> and unquoted rel=match), <meta name=fuzzy> tolerances were discarded, and rel=mismatch reftests were never scored \u2014 which RAISED every inScopeTotal; and the pass criterion changed from 1%-of-page (8616 differing pixels at 816x1056, larger than WPT's own 100x100 indicator square) to EXACT pixel match, which lowered every pass count. Fixtures declaring their own fuzzy tolerances are still judged by those. The rates roughly halved; nothing regressed. REBASELINED again 2026-09-22 for two rasteriser fidelity fixes, in the same harness-defect family as the note above \u2014 nothing in the renderer changed. (1) Ghostscript expands path fills by half a device pixel while shadings, image XObjects and glyphs resolve at the pixel centre, so a `re ... f` and a gradient stop handed the identical coordinate landed in different device columns; the fill adjustment is now zero, leaving one rounding rule for the whole pipeline. (2) The renderer emits 1 CSS px as 1 PDF point, so rasterising at 96 dpi made every render 1.78x the device pixels a fixture's <meta name=fuzzy> totalPixels budget was authored against; it now rasterises at 72 dpi, one device pixel per CSS pixel. css 9408->11693, html 351->352, svg 159->160, mathml 87->87; 2295 fixtures flipped to passing, 8 to failing, and the 8 are sub-pixel gaps in our own geometry that the fill adjustment had been papering over.",
+  "_comment": "Per-bucket in-scope PASS-COUNT floor for the WPT regression gate (scripts/wpt-scoreboard.php). Gate on counts, not percentages: counts are stable while the corpus total drifts; `tolerance` absorbs rasterisation jitter. REGENERATED IN CI 2026-09-25 via the wpt-gate workflow_dispatch with update=true, which is the ONLY correct way to set these numbers: pass counts depend on installed fonts, and the previous revision had been generated on a developer machine, so the gate failed on an environment mismatch (measuring css 11549 against a committed 11693) rather than on any regression. CI and local agree exactly on svg (220) and mathml (119) and differ by 1 on html; css is the font-sensitive bucket, where CI reads 12129 against 12271 locally. Settler-OFF, harness default font. Refresh ONLY by re-running that dispatch and committing its artifact, never from a local run.",
   "settler": "off",
   "tolerance": 2,
   "buckets": {
     "html": {
       "filter": "html/**",
-      "pass": 352,
+      "pass": 379,
       "inScopeTotal": 707
     },
     "css": {
       "filter": "css/**",
-      "pass": 11693,
+      "pass": 12129,
       "inScopeTotal": 21818
     },
     "svg": {
       "filter": "svg/**",
-      "pass": 160,
-      "inScopeTotal": 324
+      "pass": 220,
+      "inScopeTotal": 327
     },
     "mathml": {
       "filter": "mathml/**",
-      "pass": 87,
+      "pass": 119,
       "inScopeTotal": 183
     }
   },
