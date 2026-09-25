@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Svg\Value;
 
+use Phpdftk\Svg\Value\Paint\ContextPaint;
 use Phpdftk\Svg\Value\Paint\CurrentColor;
 use Phpdftk\Svg\Value\Paint\None_;
 use Phpdftk\Svg\Value\Paint\SolidColor;
@@ -12,12 +13,13 @@ use Phpdftk\Svg\Value\Paint\Url;
 /**
  * Parsed SVG paint value (SVG 2 §13.2 grammar):
  *
- *     <paint> = none | currentColor | <color> | <url> [ none | <color> ]?
+ *     <paint> = none | <color> | <url> [ none | <color> ]?
+ *             | context-fill | context-stroke | currentColor
  *
  * The implementation set is closed: `Paint\None_`, `Paint\CurrentColor`,
- * `Paint\SolidColor`, `Paint\Url`. The painter pattern-matches on the
- * concrete type to choose the right PDF emit path (fill/stroke colour vs
- * gradient/pattern reference).
+ * `Paint\SolidColor`, `Paint\Url`, `Paint\ContextPaint`. The painter
+ * pattern-matches on the concrete type to choose the right PDF emit
+ * path (fill/stroke colour vs gradient/pattern reference).
  *
  * Color parsing delegates to `Phpdftk\Svg\Value\Color::parse()` which in
  * turn produces a `Phpdftk\Color\ColorInterface` instance — the SVG package
@@ -40,6 +42,16 @@ abstract class Paint
         }
         if (strcasecmp($trimmed, 'currentColor') === 0) {
             return new CurrentColor();
+        }
+        // SVG 2 §13.2.1 — defer to the element that referenced this
+        // subtree (a `<marker>`'s shape, a `<use>`). Resolved by the
+        // painter, which is the only place that knows the reference
+        // chain.
+        if (strcasecmp($trimmed, 'context-fill') === 0) {
+            return ContextPaint::fill();
+        }
+        if (strcasecmp($trimmed, 'context-stroke') === 0) {
+            return ContextPaint::stroke();
         }
         // `url(#id) [fallback]` — the fallback is itself a paint, but
         // restricted by SVG 2 to `none | <color>`. We re-enter parse()

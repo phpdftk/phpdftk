@@ -45,6 +45,7 @@ use Phpdftk\Svg\Mask;
 use Phpdftk\Svg\Symbol;
 use Phpdftk\Svg\Use_;
 use Phpdftk\SvgToPdf\Geometry\BoundingBox;
+use Phpdftk\Svg\Value\Paint\ContextPaint;
 use Phpdftk\SvgToPdf\Path\MarkerVertex;
 use Phpdftk\SvgToPdf\Path\MarkerVertices;
 use Phpdftk\SvgToPdf\Path\PathLengthMeasure;
@@ -369,6 +370,13 @@ final class Translator
      * @var array{w: float|null, h: float|null}|null
      */
     private ?array $pendingUseViewport = null;
+
+    /**
+     * SVG 2 §13.2.1 — the paint `context-fill` / `context-stroke`
+     * inside the subtree currently being painted defer to, or null
+     * when that subtree was not reached through a reference.
+     */
+    private ?ContextElementPaint $contextPaint = null;
     /**
      * Referenced elements whose `<use>` expansion is currently on the
      * stack, keyed by identity.
@@ -3759,6 +3767,7 @@ final class Translator
         // by the USED stroke width of the shape — which is 1 when the
         // property is absent, per SVG 2 §13.2, not 0.
         $strokeWidth = $element->strokeWidth() ?? 1.0;
+        $context = new ContextElementPaint($element->fill(), $element->stroke());
         $last = count($vertices) - 1;
         foreach ($vertices as $index => $vertex) {
             // A shape reduced to a single vertex (a lone `moveto`) has
@@ -3784,7 +3793,7 @@ final class Translator
                 // definition serve both ends of a line.
                 $angle += 180.0;
             }
-            $this->paintMarkerInstance($marker, $vertex, $angle, $strokeWidth, $stream);
+            $this->paintMarkerInstance($marker, $vertex, $angle, $strokeWidth, $context, $stream);
         }
     }
 
@@ -3834,6 +3843,7 @@ final class Translator
         MarkerVertex $vertex,
         float $angle,
         float $strokeWidth,
+        ContextElementPaint $context,
         ContentStream $stream,
     ): void {
         $markerWidth = $marker->markerWidth();
@@ -3886,6 +3896,13 @@ final class Translator
         $stream->saveGraphicsState();
         $stream->concatMatrix(...$placement);
         $this->pushMatrix($placement);
+        // SVG 2 §13.2.1 — the shape that referenced this marker is the
+        // context element for any `context-fill` / `context-stroke`
+        // inside it. Saved and restored rather than just set: markers
+        // nest (a marker's content can be a shape with markers of its
+        // own) and the inner one must not keep the outer's context.
+        $outerContext = $this->contextPaint;
+        $this->contextPaint = $context;
         if (self::viewportClips($marker)) {
             $stream->rectangle(0.0, 0.0, $markerWidth, $markerHeight);
             $stream->clip()->endPath();
@@ -3903,6 +3920,7 @@ final class Translator
             $this->popMatrix();
         }
         $this->popMatrix();
+        $this->contextPaint = $outerContext;
         $stream->restoreGraphicsState();
     }
 
@@ -4324,6 +4342,13 @@ final class Translator
             $this->setFillColor($stream, $this->currentColorOf($element));
             return true;
         }
+        if ($paint instanceof ContextPaint) {
+            // SVG 2 §13.2.1 — outside a referencing context there is
+            // no context element, and the keyword resolves to `none`.
+            $resolved = $this->contextPaint?->of($paint);
+            return $resolved !== null
+                && $this->applyFillPaint($resolved, $element, $stream);
+        }
         // null → SVG 2 §13.2.1 default of black.
         $stream->setFillColorRGB(0.0, 0.0, 0.0);
         return true;
@@ -4379,6 +4404,11 @@ final class Translator
         if ($paint instanceof SolidColor) {
             $this->setStrokeColor($stream, $paint->color);
             return true;
+        }
+        if ($paint instanceof ContextPaint) {
+            $resolved = $this->contextPaint?->of($paint);
+            return $resolved !== null
+                && $this->applyStrokePaint($resolved, $element, $stream);
         }
         $this->setStrokeColor($stream, $this->currentColorOf($element));
         return true;
