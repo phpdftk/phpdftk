@@ -243,7 +243,15 @@ final class ParserTest extends TestCase
         self::assertNull($children[2]->form());
     }
 
-    public function testMsLquoteRquoteFallbackToAsciiDoubleQuote(): void
+    /**
+     * The MathML 3 `lquote` / `rquote` attributes were dropped in
+     * MathML Core, which quotes `<ms>` through the UA rules
+     * `ms::before, ms::after { content: "\"" }` instead. The parser
+     * still surfaces the raw attributes for inspection, but reports
+     * ABSENT as null rather than synthesising the `"` default — the
+     * quote is the painter's, not the attribute's.
+     */
+    public function testMsExposesTheLegacyQuoteAttributesVerbatim(): void
     {
         $doc = $this->parser->parse(
             '<math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -255,8 +263,8 @@ final class ParserTest extends TestCase
             $doc->children,
             static fn($n) => $n instanceof \Phpdftk\Mathml\Element,
         ));
-        self::assertSame('"', $children[0]->lquote());
-        self::assertSame('"', $children[0]->rquote());
+        self::assertNull($children[0]->lquote());
+        self::assertNull($children[0]->rquote());
         self::assertSame('«', $children[1]->lquote());
         self::assertSame('»', $children[1]->rquote());
     }

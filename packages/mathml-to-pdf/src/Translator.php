@@ -2379,11 +2379,16 @@ final class Translator
 
     private function paintMs(Ms $ms, MathmlPaintContext $ctx): void
     {
-        // <ms> wraps its content in lquote / rquote characters; the
-        // typed accessors fall back to ASCII " when absent. Quotes
-        // pass through the mathvariant transform unchanged.
+        // MathML Core §3.2.6 renders `<ms>` with a FIXED ASCII double
+        // quote on each side, via the UA rules
+        // `ms::before, ms::after { content: "\"" }`. The MathML 3
+        // `lquote` / `rquote` attributes were dropped from Core and
+        // must be ignored: ms-001 sets `lquote="É" rquote="p"` and
+        // matches a reference whose `<ms>` carries no attributes at
+        // all. Quotes pass through the mathvariant transform
+        // unchanged.
         $tokenCtx = $this->withMathsize($ms, $ctx);
-        $content = $ms->lquote() . $ms->textContent() . $ms->rquote();
+        $content = Ms::QUOTE . $ms->textContent() . Ms::QUOTE;
         $this->emitText($this->withMathvariant($ms, $content), $tokenCtx);
         $this->restoreMathsize($ctx, $tokenCtx);
     }

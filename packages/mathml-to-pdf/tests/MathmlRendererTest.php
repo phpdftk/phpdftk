@@ -167,8 +167,8 @@ final class MathmlRendererTest extends TestCase
 
     public function testMsWrapsContentWithDefaultDoubleQuotes(): void
     {
-        // `<ms>` wraps its content in lquote / rquote, defaulting to
-        // ASCII " on both sides per Core §3.2.6.
+        // `<ms>` renders a fixed ASCII " on both sides per Core
+        // §3.2.6 (UA rules `ms::before, ms::after`).
         $bytes = $this->render(
             '<math xmlns="http://www.w3.org/1998/Math/MathML">'
                 . '<ms>label</ms>'
@@ -184,7 +184,13 @@ final class MathmlRendererTest extends TestCase
         );
     }
 
-    public function testMsHonoursCustomLquoteRquote(): void
+    /**
+     * MathML Core §3.2.6 dropped the MathML 3 `lquote` / `rquote`
+     * attributes: `<ms>` always renders the ASCII `"`. ms-001 pins
+     * this by matching `<ms lquote="É" rquote="p">X</ms>` against a
+     * reference whose `<ms>` carries no attributes at all.
+     */
+    public function testMsIgnoresTheLegacyQuoteAttributes(): void
     {
         $bytes = $this->render(
             '<math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -192,19 +198,28 @@ final class MathmlRendererTest extends TestCase
                 . '</math>',
         );
         self::assertStringStartsWith('%PDF-', $bytes);
-        // The custom quote characters are emitted to the PDF stream;
-        // depending on PdfWriter's string-escape policy, multi-byte
-        // characters in a literal (...) string may be octal-escaped
-        // (\253 etc.) or passed through verbatim. We just confirm
-        // the inner content "euro" reached the stream and that the
-        // string itself is wrapped in quote-shaped bytes — `(` then
-        // something-not-default-double-quote then "euro" — so we
-        // know `<ms>` did NOT fall back to its ASCII " default.
-        self::assertStringContainsString('euro', $bytes);
-        self::assertDoesNotMatchRegularExpression(
-            '/\("euro"\)\s+Tj/',
+        self::assertMatchesRegularExpression(
+            '/\(\\\\?"euro\\\\?"\)\s+Tj/',
             $bytes,
-            'ms with custom lquote/rquote should not emit default ASCII quotes',
+            'ms must render the fixed ASCII quote, not the attributes',
+        );
+    }
+
+    /**
+     * Negative guard on the same rule: the attribute characters must
+     * not reach the stream at all.
+     */
+    public function testMsDoesNotEmitTheLegacyQuoteCharacters(): void
+    {
+        $bytes = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<ms lquote="X" rquote="Y">euro</ms>'
+                . '</math>',
+        );
+        self::assertDoesNotMatchRegularExpression(
+            '/\(Xeuro/',
+            $bytes,
+            'the lquote attribute must not be emitted',
         );
     }
 
