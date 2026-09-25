@@ -69,7 +69,16 @@ final class Renderer
             $this->options->baseDir,
             $this->options->sandboxRoot,
         );
-        $this->layout = new BlockLayout($this->cascade);
+        $this->layout = new BlockLayout(
+            $this->cascade,
+            new \Phpdftk\HtmlToPdf\Layout\InlineLayout(),
+            // Inline `<math>` is the one replaced element whose
+            // intrinsic size has to be MEASURED rather than read off an
+            // attribute, so layout gets a measurer instead of computing
+            // it. Lazily builds its scratch writer, so documents with
+            // no MathML pay nothing.
+            new \Phpdftk\HtmlToPdf\Mathml\MathmlIntrinsicSizer(),
+        );
     }
 
     /**

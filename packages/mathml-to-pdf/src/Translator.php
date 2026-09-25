@@ -2457,12 +2457,17 @@ final class Translator
         if ($element instanceof Mphantom) {
             return $this->maxChildHeightEm($element, $ctx);
         }
-        if ($children !== [] && (
-            $element instanceof Mrow
-            || $element instanceof GenericElement
-            || $element instanceof \Phpdftk\Mathml\MathmlDocument
-        )) {
-            return $this->maxChildHeightEm($element, $ctx);
+        $contained = $this->paintedContainerChildren($element);
+        if ($contained !== null && $contained !== []) {
+            $max = 1.0;
+            foreach ($contained as $child) {
+                $h = $this->estimateHeightEm($child, $ctx);
+                if ($h > $max) {
+                    $max = $h;
+                }
+            }
+
+            return $max;
         }
         // Tokens and anything else default to a single line.
         return 1.0;
@@ -3128,16 +3133,10 @@ final class Translator
                 return $h;
             }
         }
-        if (
-            $element instanceof Mrow
-            || $element instanceof GenericElement
-            || $element instanceof \Phpdftk\Mathml\MathmlDocument
-            || $element instanceof Mphantom
-            || $element instanceof Menclose
-            || $element instanceof Mstyle
-        ) {
+        $contained = $this->paintedContainerChildren($element);
+        if ($contained !== null) {
             $max = 0.0;
-            foreach ($this->elementChildren($element) as $child) {
+            foreach ($contained as $child) {
                 $childAscent = $this->measureAscent($child, $ctx);
                 if ($childAscent > $max) {
                     $max = $childAscent;
@@ -3209,25 +3208,15 @@ final class Translator
                 return $widthPt;
             }
         }
-        // Tier 2 — container shapes sum their direct element children.
-        if (
-            $element instanceof Mrow
-            || $element instanceof GenericElement
-            || $element instanceof \Phpdftk\Mathml\MathmlDocument
-            || $element instanceof Mphantom
-            || $element instanceof Menclose
-            || $element instanceof Mstyle
-            || $element instanceof Mpadded
-        ) {
+        // Tier 2 — container shapes sum the children they PAINT.
+        $contained = $this->paintedContainerChildren($element);
+        if ($contained !== null && $contained !== []) {
             $total = 0.0;
-            $hasChild = false;
-            foreach ($this->elementChildren($element) as $child) {
-                $hasChild = true;
+            foreach ($contained as $child) {
                 $total += $this->estimateWidth($child, $fontSize, $ctx);
             }
-            if ($hasChild) {
-                return $total;
-            }
+
+            return $total;
         }
         // Tier 3 — measure the flattened text.
         $text = $element->textContent();
@@ -3244,6 +3233,72 @@ final class Translator
             $parent->children,
             static fn($c) => $c instanceof Element,
         ));
+    }
+
+    /**
+     * The element children a transparent container actually PAINTS,
+     * or null when `$element` is not a transparent container.
+     *
+     * "Transparent" here means the element contributes no geometry of
+     * its own: its children are laid out inline exactly as if the
+     * wrapper were not there. Wrapping content in one must therefore
+     * not change the content's size or position, which is precisely
+     * the identity the WPT `semantics-*` / `*-mrow-like-*` reftests
+     * assert.
+     *
+     * Not every container paints all of its children, and the two that
+     * do not are why this has to be one shared helper rather than a
+     * list repeated at each measurement site:
+     *
+     *   - `<semantics>` paints only the first child. The
+     *     `<annotation>` / `<annotation-xml>` siblings carry alternate
+     *     encodings (Content MathML, TeX source) and are not visual
+     *     content (Core §5.1) - measuring their text content reported
+     *     an equation hundreds of points wide.
+     *   - `<maction>` paints the `selection`-indexed child (Core
+     *     §3.6.1); the unselected branches must not count.
+     *   - `<mlabeledtr>` outside a table drops its label child.
+     *
+     * Constructs that impose their own geometry (mfrac, msqrt, the
+     * script elements, mtable) are NOT transparent and return null:
+     * they have dedicated measurement arms.
+     */
+    private function paintedContainerChildren(Element $element): ?array
+    {
+        if ($element instanceof Semantics) {
+            $children = $this->elementChildren($element);
+
+            return $children === [] ? [] : [$children[0]];
+        }
+        if ($element instanceof Maction) {
+            $children = $this->elementChildren($element);
+            if ($children === []) {
+                return [];
+            }
+            $index = $element->selection() - 1;
+            if ($index < 0 || $index >= count($children)) {
+                $index = 0;
+            }
+
+            return [$children[$index]];
+        }
+        if ($element instanceof Mlabeledtr) {
+            return array_values(array_slice($this->elementChildren($element), 1));
+        }
+        if (
+            $element instanceof Mrow
+            || $element instanceof GenericElement
+            || $element instanceof \Phpdftk\Mathml\MathmlDocument
+            || $element instanceof Mphantom
+            || $element instanceof Menclose
+            || $element instanceof Mstyle
+            || $element instanceof Mpadded
+            || $element instanceof Merror
+        ) {
+            return $this->elementChildren($element);
+        }
+
+        return null;
     }
 
     /**

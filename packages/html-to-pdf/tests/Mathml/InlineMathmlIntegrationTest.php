@@ -123,7 +123,8 @@ final class InlineMathmlIntegrationTest extends TestCase
     {
         // `x = y + 1` end-to-end through the HTML pipeline. With the
         // operator dictionary live, `=` and `+` each contribute
-        // medium / thick spacing on either side via Td.
+        // medium / thick spacing on either side, each emitted as a
+        // text-positioning operator.
         $writer = new PdfWriter(compressStreams: false);
         (new Renderer())->renderInto(
             $writer,
@@ -144,8 +145,10 @@ final class InlineMathmlIntegrationTest extends TestCase
                 "expected '$glyph' in stream",
             );
         }
-        // Operator-spacing Tds plus glyph-flow Tds: at least 4 Tds.
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        // Operator spacing plus glyph flow: at least 4 repositions.
+        // The painter states them absolutely (Tm) rather than as Td
+        // deltas - see Translator::moveTextTo.
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(4, $tdCount);
     }
 
@@ -297,7 +300,7 @@ final class InlineMathmlIntegrationTest extends TestCase
     {
         // <mfrac> is now a typed class with vertical-stacking paint.
         // Numerator + denominator both reach the content stream and
-        // the Translator emits >= 3 Td operations (centred numerator,
+        // the Translator emits >= 3 repositions (centred numerator,
         // shift to centred denominator, advance to fraction right).
         $writer = new PdfWriter(compressStreams: false);
         (new Renderer())->renderInto(
@@ -317,10 +320,10 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertStringStartsWith('%PDF-', $bytes);
         self::assertMatchesRegularExpression('/\(1\)\s+Tj/', $bytes);
         self::assertMatchesRegularExpression('/\(2\)\s+Tj/', $bytes);
-        // Confirm vertical stacking happened — the Td operation count
+        // Confirm vertical stacking happened — the reposition count
         // is the canary that the Translator did its mfrac-specific
         // repositioning rather than walking children inline.
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(3, $tdCount);
     }
 

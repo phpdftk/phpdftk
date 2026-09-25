@@ -12,6 +12,7 @@ use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
 use Phpdftk\Css\Value\Percentage;
 use Phpdftk\HtmlToPdf\Box\Box;
+use Phpdftk\HtmlToPdf\Box\BoxGenerator;
 use Phpdftk\HtmlToPdf\Box\BlockBox;
 use Phpdftk\HtmlToPdf\Box\AnonymousBlockBox;
 use Phpdftk\HtmlToPdf\Box\AtomicInlineBox;
@@ -240,6 +241,15 @@ final class BlockLayout
     public function __construct(
         private readonly Cascade $cascade,
         private readonly InlineLayout $inlineLayout = new InlineLayout(),
+        /**
+         * Measures an inline `<math>` subtree so layout can reserve
+         * room for it. MathML is the one replaced element whose
+         * intrinsic size comes from a sibling package rather than an
+         * attribute or a decoded image header, so it arrives by
+         * injection instead of being computed here. Null keeps the
+         * historical behaviour (a zero-sized `<math>` box).
+         */
+        private readonly ?\Phpdftk\HtmlToPdf\Mathml\MathmlIntrinsicSizer $mathIntrinsicSizer = null,
     ) {}
 
     /**
@@ -15272,6 +15282,9 @@ final class BlockLayout
     {
         foreach ($parent->children as $child) {
             if ($child instanceof AtomicInlineBox) {
+                if ($this->applyMathIntrinsicSize($child)) {
+                    continue;
+                }
                 if (!$this->inlineAtomicNeedsContentLayout($child)) {
                     continue;
                 }
@@ -15297,6 +15310,91 @@ final class BlockLayout
                 $this->layoutInlineAtomicContents($child, $context);
             }
         }
+    }
+
+    /**
+     * Give an inline `<math>` box the intrinsic size of the equation it
+     * holds, so the line it sits on reserves real space for it.
+     *
+     * MathML is a replaced element with no intrinsic-size ATTRIBUTES:
+     * unlike `<img width>` or an SVG `viewBox`, the only way to know how
+     * big an equation is, is to measure it. That measurement lived
+     * exclusively in the painter, which runs too late to affect layout,
+     * so a `<math>` box stayed 0x0 and contributed no inline advance.
+     *
+     * Records the result through the same `laidOut*` fields an
+     * `inline-block` uses, so `InlineLayout` allocates the advance, the
+     * line box grows to fit, and CSS 2.1 §10.8.1 aligns the equation on
+     * its own math baseline rather than on its bottom margin edge.
+     *
+     * A declared `width` / `height` in the cascade still wins: this only
+     * fills in an axis the author left auto, matching how every other
+     * replaced element resolves its used size (CSS 2.1 §10.3.2).
+     *
+     * Returns true when the box was handled, so the caller skips the
+     * inline-block content layout that does not apply to replaced
+     * content.
+     */
+    private function applyMathIntrinsicSize(AtomicInlineBox $box): bool
+    {
+        $sizer = $this->mathIntrinsicSizer;
+        $element = $box->element;
+        if ($sizer === null
+            || $element === null
+            || BoxGenerator::foreignContentKind($element) !== 'math'
+        ) {
+            return false;
+        }
+        $declaredWidth = $this->definiteAtomicLength($box, 'width');
+        $declaredHeight = $this->definiteAtomicLength($box, 'height');
+        if ($declaredWidth !== null && $declaredHeight !== null) {
+            // Both axes are authored; nothing to measure.
+            return true;
+        }
+        $measured = $sizer->measure($element, $this->mathBoxFontSize($box));
+        if ($measured === null) {
+            return true;
+        }
+        [$width, $height, $baseline] = $measured;
+        $usedWidth = $declaredWidth ?? $width;
+        $usedHeight = $declaredHeight ?? $height;
+        if ($usedWidth <= 0.0 && $usedHeight <= 0.0) {
+            return true;
+        }
+        $box->geometry->width = $usedWidth;
+        $box->geometry->height = $usedHeight;
+        $box->laidOutContentWidth = $usedWidth;
+        $box->laidOutContentHeight = $usedHeight;
+        // Clamp: a declared height shorter than the equation must not
+        // push the baseline outside the box, which would make the line
+        // grow in the wrong direction.
+        $box->laidOutBaseline = max(0.0, min($baseline, $usedHeight));
+
+        return true;
+    }
+
+    /**
+     * A cascaded `width` / `height` on an atomic inline, when it is a
+     * definite length. Percentages are left to the normal replaced-
+     * sizing path — they need a containing block this pre-pass does not
+     * have.
+     */
+    private function definiteAtomicLength(AtomicInlineBox $box, string $property): ?float
+    {
+        $value = $box->style->get($property);
+        if ($value instanceof Length && $value->value > 0.0) {
+            return $value->value;
+        }
+
+        return null;
+    }
+
+    /** The `<math>` element's cascaded font size, the basis for `em` in the equation. */
+    private function mathBoxFontSize(AtomicInlineBox $box): float
+    {
+        $value = $box->style->get('font-size');
+
+        return $value instanceof Length && $value->value > 0.0 ? $value->value : 16.0;
     }
 
     /**
