@@ -1445,57 +1445,7 @@ final class InlineLayout
         if (!($value instanceof \Phpdftk\Css\Value\Keyword)) {
             return $text;
         }
-        return match (strtolower($value->name)) {
-            'uppercase' => mb_strtoupper($text, 'UTF-8'),
-            'lowercase' => mb_strtolower($text, 'UTF-8'),
-            'capitalize' => $this->capitalizeWords($text),
-            // CSS Text 4 §2.1.4 — `full-width` maps the ASCII range
-            // U+0021..U+007E to the Unicode full-width forms
-            // U+FF01..U+FF5E, and ASCII space U+0020 to the
-            // ideographic space U+3000. Useful for monospace-like
-            // CJK alignment.
-            'full-width' => $this->toFullWidth($text),
-            default => $text,
-        };
-    }
-
-    private function toFullWidth(string $text): string
-    {
-        $out = '';
-        foreach (mb_str_split($text, 1, 'UTF-8') as $ch) {
-            $cp = mb_ord($ch, 'UTF-8');
-            if ($cp === false) {
-                $out .= $ch;
-                continue;
-            }
-            $out .= match (true) {
-                $cp === 0x0020 => mb_chr(0x3000, 'UTF-8'),
-                $cp >= 0x0021 && $cp <= 0x007E => mb_chr($cp + 0xFEE0, 'UTF-8'),
-                default => $ch,
-            };
-        }
-        return $out;
-    }
-
-    private function capitalizeWords(string $text): string
-    {
-        // Split on whitespace runs, capitalize the first codepoint of each
-        // non-empty word, and rejoin with the original separators.
-        $parts = preg_split('/(\s+)/u', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
-        if ($parts === false) {
-            return $text;
-        }
-        $out = '';
-        foreach ($parts as $part) {
-            if ($part === '' || preg_match('/^\s+$/u', $part) === 1) {
-                $out .= $part;
-                continue;
-            }
-            $first = mb_substr($part, 0, 1, 'UTF-8');
-            $rest = mb_substr($part, 1, null, 'UTF-8');
-            $out .= mb_strtoupper($first, 'UTF-8') . $rest;
-        }
-        return $out;
+        return \Phpdftk\Text\TextTransform::apply($text, $value->name);
     }
 
     /**

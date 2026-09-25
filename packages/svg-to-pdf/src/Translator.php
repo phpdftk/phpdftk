@@ -68,6 +68,7 @@ use Phpdftk\Svg\Parser as SvgDocumentParser;
 use Phpdftk\Svg\SvgDocument;
 use Phpdftk\Svg\View as SvgView;
 use Phpdftk\Svg\Text as TextNode;
+use Phpdftk\Text\TextTransform;
 use Phpdftk\Svg\Text\TextElement;
 use Phpdftk\Svg\Value\Transform;
 use Phpdftk\Svg\Value\TransformOrigin;
@@ -2910,6 +2911,10 @@ final class Translator
         if ($content === '') {
             return;
         }
+        // CSS Text 3 §2.1 — SVG 2 §11 delegates text styling to CSS
+        // wholesale, so `text-transform` applies to `<text>` and has to
+        // run before shaping.
+        $content = TextTransform::apply($content, $text->textTransform());
 
         // SVG 2 default fill for `<text>` is black; the existing
         // applyFillPaint path covers that, but we apply it *before*

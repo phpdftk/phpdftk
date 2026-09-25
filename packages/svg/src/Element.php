@@ -197,6 +197,21 @@ abstract class Element extends Node
         return strtolower(trim($raw));
     }
 
+    /**
+     * The `text-transform` property (CSS Text 3 §2.1), lowercased, or
+     * null when nothing declared it. SVG 2 §11 delegates text styling
+     * to CSS wholesale, so it applies to `<text>` exactly as it does
+     * to an HTML box.
+     */
+    public function textTransform(): ?string
+    {
+        $raw = $this->presentationOrStyle('text-transform');
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        return strtolower(trim($raw));
+    }
+
     public function clipPathValue(): ?string
     {
         return $this->presentationOrStyle('clip-path');
