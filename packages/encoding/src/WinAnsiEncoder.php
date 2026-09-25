@@ -90,6 +90,12 @@ final class WinAnsiEncoder implements TextEncoder
         $reverse[0x2D] = 0x2D;
         // Soft hyphen U+00AD also maps to 0xAD.
         $reverse[0x00AD] = 0xAD;
+        // NO-BREAK SPACE U+00A0 is glyphed 'space' at byte 0xA0, but
+        // 0x20 is glyphed 'space' too and claimed the reverse entry
+        // under the first-mapping-wins rule above — so U+00A0 fell
+        // through to `.notdef` and every non-breaking space in a
+        // document rendered as `?`.
+        $reverse[0x00A0] = 0xA0;
 
         self::$codepointToByte = $reverse;
         return $reverse;

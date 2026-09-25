@@ -104,4 +104,26 @@ class WinAnsiEncoderTest extends TestCase
         $encoder->encode("world \u{2318}");
         $this->assertSame([0x2713, 0x2318], $encoder->getMissingCodepoints());
     }
+
+    /**
+     * WinAnsiEncoding glyphs byte 0xA0 as `space`, exactly as it does
+     * byte 0x20. The reverse map is built first-mapping-wins so U+0020
+     * stays canonical at 0x20, and that left U+00A0 with no entry at
+     * all: every non-breaking space in a document encoded as `?` and
+     * was reported as a missing codepoint.
+     */
+    public function testNoBreakSpaceEncodesToItsWinAnsiByte(): void
+    {
+        $encoder = new WinAnsiEncoder();
+        self::assertSame("a\xA0b", $encoder->encode("a\u{00A0}b"));
+        self::assertSame([], $encoder->getMissingCodepoints());
+    }
+
+    public function testOrdinarySpaceStillEncodesToTheCanonicalByte(): void
+    {
+        // Guard: 0x20 must not lose the `space` reverse entry to 0xA0.
+        $encoder = new WinAnsiEncoder();
+        self::assertSame('a b', $encoder->encode('a b'));
+        self::assertSame([], $encoder->getMissingCodepoints());
+    }
 }
