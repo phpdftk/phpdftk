@@ -3907,23 +3907,105 @@ final class Translator
     ): void {
         $pw = $tile['w'];
         $ph = $tile['h'];
+        // SVG 2 §13.3 — `patternTransform` moves the whole tiling
+        // lattice while the shape it fills stays put. Concatenating it
+        // once around the tile loop is the lattice half; the range the
+        // loop covers has to be computed in the PATTERN's own space,
+        // which is the shape's bounding box mapped back through the
+        // inverse. Skipping that left the near edge of the shape
+        // unpainted whenever the transform pushed the lattice forward.
+        $patternMatrix = $pattern->patternTransform()?->toMatrix();
+        $inverse = $patternMatrix === null ? null : self::invertAffine($patternMatrix);
+        if ($patternMatrix !== null && $inverse !== null) {
+            $stream->saveGraphicsState();
+            $stream->concatMatrix(
+                $patternMatrix[0],
+                $patternMatrix[1],
+                $patternMatrix[2],
+                $patternMatrix[3],
+                $patternMatrix[4],
+                $patternMatrix[5],
+            );
+            $bbox = self::transformBoundingBox($bbox, $inverse);
+        }
         $i0 = (int) floor(($bbox['minX'] - $tile['x']) / $pw);
         $i1 = (int) ceil(($bbox['minX'] + $bbox['width'] - $tile['x']) / $pw);
         $j0 = (int) floor(($bbox['minY'] - $tile['y']) / $ph);
         $j1 = (int) ceil(($bbox['minY'] + $bbox['height'] - $tile['y']) / $ph);
-        if (($i1 - $i0) * ($j1 - $j0) > self::MAX_PATTERN_TILES) {
-            return;
-        }
-        for ($j = $j0; $j < $j1; $j++) {
-            for ($i = $i0; $i < $i1; $i++) {
-                $stream->saveGraphicsState();
-                $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, $i * $pw, $j * $ph);
-                $stream->rectangle($tile['x'], $tile['y'], $pw, $ph);
-                $stream->clip()->endPath();
-                $this->paintChildren($pattern, $stream);
-                $stream->restoreGraphicsState();
+        if (($i1 - $i0) * ($j1 - $j0) <= self::MAX_PATTERN_TILES) {
+            for ($j = $j0; $j < $j1; $j++) {
+                for ($i = $i0; $i < $i1; $i++) {
+                    $stream->saveGraphicsState();
+                    $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, $i * $pw, $j * $ph);
+                    $stream->rectangle($tile['x'], $tile['y'], $pw, $ph);
+                    $stream->clip()->endPath();
+                    $this->paintChildren($pattern, $stream);
+                    $stream->restoreGraphicsState();
+                }
             }
         }
+        if ($patternMatrix !== null && $inverse !== null) {
+            $stream->restoreGraphicsState();
+        }
+    }
+
+    /**
+     * Inverse of an affine `[a, b, c, d, e, f]`, or null when it is
+     * singular. A singular `patternTransform` is rejected earlier as an
+     * invalid paint server, so the null branch is a belt-and-braces
+     * guard against a divide by zero.
+     *
+     * @param array{float, float, float, float, float, float} $m
+     * @return array{float, float, float, float, float, float}|null
+     */
+    private static function invertAffine(array $m): ?array
+    {
+        [$a, $b, $c, $d, $e, $f] = $m;
+        $determinant = $a * $d - $b * $c;
+        if ($determinant === 0.0) {
+            return null;
+        }
+        return [
+            $d / $determinant,
+            -$b / $determinant,
+            -$c / $determinant,
+            $a / $determinant,
+            ($c * $f - $d * $e) / $determinant,
+            ($b * $e - $a * $f) / $determinant,
+        ];
+    }
+
+    /**
+     * The axis-aligned bounding box of `$bbox` mapped through `$m` —
+     * all four corners, since a rotation or skew turns the rectangle
+     * into a parallelogram.
+     *
+     * @param array{minX: float, minY: float, width: float, height: float} $bbox
+     * @param array{float, float, float, float, float, float} $m
+     * @return array{minX: float, minY: float, width: float, height: float}
+     */
+    private static function transformBoundingBox(array $bbox, array $m): array
+    {
+        [$a, $b, $c, $d, $e, $f] = $m;
+        $xs = [];
+        $ys = [];
+        foreach (
+            [
+                [$bbox['minX'], $bbox['minY']],
+                [$bbox['minX'] + $bbox['width'], $bbox['minY']],
+                [$bbox['minX'], $bbox['minY'] + $bbox['height']],
+                [$bbox['minX'] + $bbox['width'], $bbox['minY'] + $bbox['height']],
+            ] as [$x, $y]
+        ) {
+            $xs[] = $a * $x + $c * $y + $e;
+            $ys[] = $b * $x + $d * $y + $f;
+        }
+        return [
+            'minX' => min($xs),
+            'minY' => min($ys),
+            'width' => max($xs) - min($xs),
+            'height' => max($ys) - min($ys),
+        ];
     }
 
     /**
